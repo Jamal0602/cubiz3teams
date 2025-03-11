@@ -5,13 +5,19 @@ import { useAuth } from '@/contexts/AuthContext';
 import TopNav from './TopNav';
 import SidebarNav from './SidebarNav';
 import { cn } from '@/lib/utils';
+import { toast } from 'sonner';
 
 interface AppLayoutProps {
   children?: React.ReactNode;
   requiredRoles?: Array<'admin' | 'manager' | 'employee'>;
+  verificationRequired?: boolean;
 }
 
-const AppLayout: React.FC<AppLayoutProps> = ({ children, requiredRoles }) => {
+const AppLayout: React.FC<AppLayoutProps> = ({ 
+  children, 
+  requiredRoles,
+  verificationRequired = true
+}) => {
   const { user, profile, isAuthenticated, loading } = useAuth();
 
   // Show loading state
@@ -28,12 +34,23 @@ const AppLayout: React.FC<AppLayoutProps> = ({ children, requiredRoles }) => {
 
   // Redirect to login if not authenticated
   if (!isAuthenticated) {
+    toast.error('You need to be logged in to access this page');
     return <Navigate to="/login" replace />;
+  }
+
+  // Check if user is verified (except for admins)
+  if (verificationRequired && profile && !profile.verified && profile.role !== 'admin') {
+    toast.error('Your account is pending verification');
+    return <Navigate to="/verification-pending" replace />;
   }
 
   // Check for required roles
   if (requiredRoles && profile && !requiredRoles.includes(profile.role)) {
-    return <Navigate to="/unauthorized" replace />;
+    // Admins can access everything
+    if (profile.role !== 'admin') {
+      toast.error('You do not have permission to access this page');
+      return <Navigate to="/unauthorized" replace />;
+    }
   }
 
   return (

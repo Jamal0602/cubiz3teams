@@ -61,21 +61,22 @@ const Teams = () => {
 
       if (teamError) throw teamError;
 
-      // Get member counts for each team
+      // Get member counts for each team manually without using group()
       const teamIds = teamData.map((team: any) => team.id);
-      const { data: memberCounts, error: countError } = await supabase
+      
+      // Get all team members for these teams
+      const { data: members, error: membersError } = await supabase
         .from('team_members')
-        .select('team_id, count')
-        .in('team_id', teamIds)
-        .group('team_id');
+        .select('team_id')
+        .in('team_id', teamIds);
 
-      if (countError) throw countError;
+      if (membersError) throw membersError;
 
-      // Create a map of team_id to member count
-      const countMap = memberCounts.reduce((map: Record<string, number>, item: any) => {
-        map[item.team_id] = parseInt(item.count, 10);
-        return map;
-      }, {});
+      // Count members per team
+      const countMap: Record<string, number> = {};
+      members?.forEach((member: any) => {
+        countMap[member.team_id] = (countMap[member.team_id] || 0) + 1;
+      });
 
       // Combine team data with creator name and member count
       const formattedTeams = teamData.map((team: any) => ({

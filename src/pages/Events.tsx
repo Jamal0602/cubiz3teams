@@ -75,21 +75,22 @@ const Events = () => {
 
       if (error) throw error;
 
-      // Get attendee counts for each event
+      // Get attendee counts for each event manually without using group()
       const eventIds = data.map((event: any) => event.id);
-      const { data: attendeeCounts, error: countError } = await supabase
+      
+      // Get all attendees for these events
+      const { data: attendees, error: attendeesError } = await supabase
         .from('event_attendees')
-        .select('event_id, count')
-        .in('event_id', eventIds)
-        .group('event_id');
+        .select('event_id')
+        .in('event_id', eventIds);
 
-      if (countError) throw countError;
+      if (attendeesError) throw attendeesError;
 
-      // Create a map of event_id to attendee count
-      const countMap = attendeeCounts.reduce((map: Record<string, number>, item: any) => {
-        map[item.event_id] = parseInt(item.count, 10);
-        return map;
-      }, {});
+      // Count attendees per event
+      const countMap: Record<string, number> = {};
+      attendees?.forEach((attendee: any) => {
+        countMap[attendee.event_id] = (countMap[attendee.event_id] || 0) + 1;
+      });
 
       // Format the events with team name, creator name, and attendee count
       const formattedEvents = data.map((event: any) => ({
