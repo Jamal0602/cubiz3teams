@@ -1,11 +1,12 @@
 
-import React from 'react';
+import React, { useEffect, useState } from 'react';
 import { Navigate, Outlet } from 'react-router-dom';
 import { useAuth } from '@/contexts/AuthContext';
 import TopNav from './TopNav';
 import SidebarNav from './SidebarNav';
 import { cn } from '@/lib/utils';
 import { toast } from 'sonner';
+import { Loader2 } from 'lucide-react';
 
 interface AppLayoutProps {
   children?: React.ReactNode;
@@ -18,14 +19,27 @@ const AppLayout: React.FC<AppLayoutProps> = ({
   requiredRoles,
   verificationRequired = true
 }) => {
-  const { user, profile, isAuthenticated, loading } = useAuth();
+  const { user, profile, isAuthenticated, loading, refreshProfile } = useAuth();
+  const [isChecking, setIsChecking] = useState<boolean>(true);
 
-  // Show loading state
-  if (loading) {
+  useEffect(() => {
+    // Try to refresh the profile to ensure we have the latest data
+    const initProfile = async () => {
+      if (isAuthenticated && !profile) {
+        await refreshProfile();
+      }
+      setIsChecking(false);
+    };
+
+    initProfile();
+  }, [isAuthenticated, profile, refreshProfile]);
+
+  // Show loading state while auth is being checked or profile is being fetched
+  if (loading || isChecking) {
     return (
       <div className="flex items-center justify-center h-screen">
         <div className="animate-pulse flex flex-col items-center">
-          <div className="w-12 h-12 rounded-full bg-primary/30 mb-4"></div>
+          <Loader2 className="w-12 h-12 text-primary animate-spin mb-4" />
           <div className="h-4 w-32 bg-muted rounded"></div>
         </div>
       </div>
@@ -38,16 +52,18 @@ const AppLayout: React.FC<AppLayoutProps> = ({
     return <Navigate to="/login" replace />;
   }
 
-  // Check if user is verified (except for admins)
+  // Check if user is verified (except for admins) when verification is required
   if (verificationRequired && profile && !profile.verified && profile.role !== 'admin') {
     toast.error('Your account is pending verification');
     return <Navigate to="/verification-pending" replace />;
   }
 
   // Check for required roles
-  if (requiredRoles && profile && !requiredRoles.includes(profile.role)) {
-    // Admins can access everything
-    if (profile.role !== 'admin') {
+  if (requiredRoles && requiredRoles.length > 0 && profile) {
+    // Check if user's role is in the allowed roles list or is an admin
+    const hasRequiredRole = requiredRoles.includes(profile.role) || profile.role === 'admin';
+    
+    if (!hasRequiredRole) {
       toast.error('You do not have permission to access this page');
       return <Navigate to="/unauthorized" replace />;
     }

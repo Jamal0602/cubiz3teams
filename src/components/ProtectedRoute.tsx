@@ -1,21 +1,41 @@
 
-import { ReactNode, useEffect } from 'react';
+import { ReactNode, useEffect, useState } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { useAuth } from '@/contexts/AuthContext';
 import { toast } from 'sonner';
+import { Loader2 } from 'lucide-react';
 
 interface ProtectedRouteProps {
   children: ReactNode;
   requiredRole?: 'admin' | 'manager' | 'employee';
+  verificationRequired?: boolean;
 }
 
-const ProtectedRoute = ({ children, requiredRole }: ProtectedRouteProps) => {
-  const { isAuthenticated, profile, loading } = useAuth();
+const ProtectedRoute = ({ 
+  children, 
+  requiredRole,
+  verificationRequired = true
+}: ProtectedRouteProps) => {
+  const { isAuthenticated, profile, loading, refreshProfile } = useAuth();
   const navigate = useNavigate();
+  const [isAuthorized, setIsAuthorized] = useState<boolean>(false);
+  const [isChecking, setIsChecking] = useState<boolean>(true);
 
   useEffect(() => {
-    // Check once the loading is complete
-    if (!loading) {
+    // Try to refresh the profile first to ensure we have the latest data
+    const initProfile = async () => {
+      if (isAuthenticated && !profile) {
+        await refreshProfile();
+      }
+      setIsChecking(false);
+    };
+
+    initProfile();
+  }, [isAuthenticated, profile, refreshProfile]);
+
+  useEffect(() => {
+    // Check once the loading is complete and profile check is done
+    if (!loading && !isChecking) {
       // Not authenticated, redirect to login
       if (!isAuthenticated) {
         toast.error('You need to be logged in to access this page');
@@ -23,8 +43,8 @@ const ProtectedRoute = ({ children, requiredRole }: ProtectedRouteProps) => {
         return;
       }
       
-      // Check if user is verified
-      if (profile && !profile.verified && profile.role !== 'admin') {
+      // Check if user is verified when required
+      if (verificationRequired && profile && !profile.verified && profile.role !== 'admin') {
         toast.error('Your account is pending verification');
         navigate('/verification-pending');
         return;
@@ -38,33 +58,26 @@ const ProtectedRoute = ({ children, requiredRole }: ProtectedRouteProps) => {
           return;
         }
       }
-    }
-  }, [isAuthenticated, loading, navigate, profile, requiredRole]);
 
-  if (loading) {
+      // If we reach here, user is authorized
+      setIsAuthorized(true);
+    }
+  }, [isAuthenticated, loading, navigate, profile, requiredRole, isChecking, verificationRequired]);
+
+  // Show a loading state while checking auth and profile
+  if (loading || isChecking) {
     return (
       <div className="flex items-center justify-center min-h-screen">
         <div className="animate-pulse flex flex-col items-center">
-          <div className="w-12 h-12 rounded-full bg-primary/30 mb-4"></div>
+          <Loader2 className="w-12 h-12 text-primary animate-spin mb-4" />
           <div className="h-4 w-32 bg-muted rounded"></div>
         </div>
       </div>
     );
   }
 
-  if (!isAuthenticated) {
-    return null;
-  }
-
-  if (profile && !profile.verified && profile.role !== 'admin') {
-    return null;
-  }
-
-  if (requiredRole && profile && profile.role !== requiredRole && profile.role !== 'admin') {
-    return null;
-  }
-
-  return <>{children}</>;
+  // Only render children if authorized
+  return isAuthorized ? <>{children}</> : null;
 };
 
 export default ProtectedRoute;
