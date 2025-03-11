@@ -1,183 +1,237 @@
 
-import React, { useState, useEffect } from 'react';
-import { useNavigate } from 'react-router-dom';
-import { useAuth } from '@/contexts/AuthContext';
-import { Button } from '@/components/ui/button';
-import { Input } from '@/components/ui/input';
-import { Card, CardContent, CardDescription, CardFooter, CardHeader, CardTitle } from '@/components/ui/card';
-import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
-import { Label } from '@/components/ui/label';
-import { GitHub, Mail, Apple } from 'lucide-react';
+import { useState } from "react";
+import { useNavigate } from "react-router-dom";
+import { useAuth } from "@/contexts/AuthContext";
+import { Card, CardContent, CardDescription, CardFooter, CardHeader, CardTitle } from "@/components/ui/card";
+import { Input } from "@/components/ui/input";
+import { Button } from "@/components/ui/button";
+import { Label } from "@/components/ui/label";
+import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
+import { Github, Mail, AlertCircle } from "lucide-react";
+import { Alert, AlertDescription } from "@/components/ui/alert";
+import { FaApple } from "react-icons/fa";
 
 const Auth = () => {
-  const [isLogin, setIsLogin] = useState(true);
-  const [email, setEmail] = useState('');
-  const [password, setPassword] = useState('');
-  const [fullName, setFullName] = useState('');
-  const [isSubmitting, setIsSubmitting] = useState(false);
-  const { login, signup, loginWithGoogle, loginWithGithub, loginWithApple, isAuthenticated } = useAuth();
+  const [email, setEmail] = useState("");
+  const [password, setPassword] = useState("");
+  const [fullName, setFullName] = useState("");
+  const [isLoading, setIsLoading] = useState(false);
+  const [error, setError] = useState<string | null>(null);
+  const { login, signup, loginWithGoogle, loginWithGithub, loginWithApple } = useAuth();
   const navigate = useNavigate();
 
-  useEffect(() => {
-    if (isAuthenticated) {
-      navigate('/dashboard');
-    }
-  }, [isAuthenticated, navigate]);
-
-  const handleSubmit = async (e: React.FormEvent) => {
+  const handleEmailLogin = async (e: React.FormEvent) => {
     e.preventDefault();
-    setIsSubmitting(true);
-
+    setError(null);
+    setIsLoading(true);
+    
     try {
-      if (isLogin) {
-        await login(email, password);
-      } else {
-        await signup(email, password, fullName);
-        setIsLogin(true);
-      }
-    } catch (error) {
-      console.error('Authentication error:', error);
+      await login(email, password);
+      navigate("/dashboard");
+    } catch (err: any) {
+      setError(err.message || "Failed to log in");
     } finally {
-      setIsSubmitting(false);
+      setIsLoading(false);
+    }
+  };
+
+  const handleSignup = async (e: React.FormEvent) => {
+    e.preventDefault();
+    setError(null);
+    setIsLoading(true);
+    
+    try {
+      await signup(email, password, fullName);
+      // Don't navigate - wait for email verification
+    } catch (err: any) {
+      setError(err.message || "Failed to sign up");
+    } finally {
+      setIsLoading(false);
     }
   };
 
   return (
-    <div className="min-h-screen flex items-center justify-center bg-gradient-to-br from-background to-muted p-4">
-      <Card className="w-full max-w-md animate-in">
-        <CardHeader className="space-y-1">
-          <CardTitle className="text-2xl font-bold text-center">Cubiz Teams</CardTitle>
-          <CardDescription className="text-center">
-            {isLogin ? 'Sign in to your account' : 'Create a new account'}
-          </CardDescription>
-        </CardHeader>
-        <Tabs defaultValue="email" className="w-full">
-          <TabsList className="grid grid-cols-3 mb-4 mx-4">
-            <TabsTrigger value="email">Email</TabsTrigger>
-            <TabsTrigger value="google">Google</TabsTrigger>
-            <TabsTrigger value="github">GitHub</TabsTrigger>
+    <div className="min-h-screen flex items-center justify-center bg-gradient-to-b from-background to-muted p-4">
+      <div className="w-full max-w-md">
+        <div className="flex justify-center mb-8">
+          <div className="flex items-center gap-2">
+            <div className="w-10 h-10 rounded-lg bg-primary flex items-center justify-center text-primary-foreground font-bold text-2xl">
+              C
+            </div>
+            <h1 className="font-bold text-2xl">Cubiz Teams</h1>
+          </div>
+        </div>
+        
+        <Tabs defaultValue="login" className="w-full">
+          <TabsList className="grid w-full grid-cols-2 mb-6">
+            <TabsTrigger value="login">Login</TabsTrigger>
+            <TabsTrigger value="signup">Sign Up</TabsTrigger>
           </TabsList>
           
-          <TabsContent value="email">
-            <form onSubmit={handleSubmit}>
-              <CardContent className="space-y-4">
-                {!isLogin && (
+          <TabsContent value="login">
+            <Card>
+              <CardHeader>
+                <CardTitle>Login to your account</CardTitle>
+                <CardDescription>
+                  Enter your email and password to access your team workspace
+                </CardDescription>
+              </CardHeader>
+              <CardContent>
+                {error && (
+                  <Alert variant="destructive" className="mb-4">
+                    <AlertCircle className="h-4 w-4" />
+                    <AlertDescription>{error}</AlertDescription>
+                  </Alert>
+                )}
+                
+                <form onSubmit={handleEmailLogin} className="space-y-4">
                   <div className="space-y-2">
-                    <Label htmlFor="fullName">Full Name</Label>
-                    <Input 
-                      id="fullName" 
-                      type="text" 
-                      placeholder="Enter your full name" 
-                      value={fullName}
-                      onChange={(e) => setFullName(e.target.value)}
-                      required={!isLogin}
+                    <Label htmlFor="email">Email</Label>
+                    <Input
+                      id="email"
+                      type="email"
+                      placeholder="name@example.com"
+                      value={email}
+                      onChange={(e) => setEmail(e.target.value)}
+                      required
                     />
                   </div>
-                )}
-                <div className="space-y-2">
-                  <Label htmlFor="email">Email</Label>
-                  <Input 
-                    id="email" 
-                    type="email" 
-                    placeholder="Enter your email" 
-                    value={email}
-                    onChange={(e) => setEmail(e.target.value)}
-                    required
-                  />
-                </div>
-                <div className="space-y-2">
-                  <div className="flex items-center justify-between">
-                    <Label htmlFor="password">Password</Label>
-                    {isLogin && <a href="#" className="text-xs text-primary hover:underline">Forgot password?</a>}
+                  <div className="space-y-2">
+                    <div className="flex items-center justify-between">
+                      <Label htmlFor="password">Password</Label>
+                      <Button variant="link" className="p-0 h-auto" size="sm">
+                        Forgot password?
+                      </Button>
+                    </div>
+                    <Input
+                      id="password"
+                      type="password"
+                      value={password}
+                      onChange={(e) => setPassword(e.target.value)}
+                      required
+                    />
                   </div>
-                  <Input 
-                    id="password" 
-                    type="password" 
-                    placeholder="Enter your password" 
-                    value={password}
-                    onChange={(e) => setPassword(e.target.value)}
-                    required
-                  />
+                  <Button type="submit" className="w-full" disabled={isLoading}>
+                    {isLoading ? "Logging in..." : "Login"}
+                  </Button>
+                </form>
+                
+                <div className="relative my-6">
+                  <div className="absolute inset-0 flex items-center">
+                    <span className="w-full border-t border-border" />
+                  </div>
+                  <div className="relative flex justify-center text-xs uppercase">
+                    <span className="bg-card px-2 text-muted-foreground">
+                      Or continue with
+                    </span>
+                  </div>
+                </div>
+                
+                <div className="grid grid-cols-3 gap-2">
+                  <Button variant="outline" type="button" onClick={loginWithGoogle}>
+                    <Mail className="h-4 w-4 mr-2" />
+                    Google
+                  </Button>
+                  <Button variant="outline" type="button" onClick={loginWithGithub}>
+                    <Github className="h-4 w-4 mr-2" />
+                    GitHub
+                  </Button>
+                  <Button variant="outline" type="button" onClick={loginWithApple}>
+                    <FaApple className="h-4 w-4 mr-2" />
+                    Apple
+                  </Button>
                 </div>
               </CardContent>
-              <CardFooter className="flex flex-col space-y-4">
-                <Button type="submit" className="w-full" disabled={isSubmitting}>
-                  {isSubmitting ? 'Processing...' : isLogin ? 'Sign In' : 'Sign Up'}
-                </Button>
-                <div className="text-center text-sm">
-                  {isLogin ? "Don't have an account? " : "Already have an account? "}
-                  <button 
-                    type="button"
-                    className="text-primary hover:underline"
-                    onClick={() => setIsLogin(!isLogin)}
-                  >
-                    {isLogin ? 'Sign Up' : 'Sign In'}
-                  </button>
+            </Card>
+          </TabsContent>
+          
+          <TabsContent value="signup">
+            <Card>
+              <CardHeader>
+                <CardTitle>Create an account</CardTitle>
+                <CardDescription>
+                  Enter your details to create a new Cubiz Teams account
+                </CardDescription>
+              </CardHeader>
+              <CardContent>
+                {error && (
+                  <Alert variant="destructive" className="mb-4">
+                    <AlertCircle className="h-4 w-4" />
+                    <AlertDescription>{error}</AlertDescription>
+                  </Alert>
+                )}
+                
+                <form onSubmit={handleSignup} className="space-y-4">
+                  <div className="space-y-2">
+                    <Label htmlFor="fullName">Full Name</Label>
+                    <Input
+                      id="fullName"
+                      type="text"
+                      placeholder="John Doe"
+                      value={fullName}
+                      onChange={(e) => setFullName(e.target.value)}
+                      required
+                    />
+                  </div>
+                  <div className="space-y-2">
+                    <Label htmlFor="signupEmail">Email</Label>
+                    <Input
+                      id="signupEmail"
+                      type="email"
+                      placeholder="name@example.com"
+                      value={email}
+                      onChange={(e) => setEmail(e.target.value)}
+                      required
+                    />
+                  </div>
+                  <div className="space-y-2">
+                    <Label htmlFor="signupPassword">Password</Label>
+                    <Input
+                      id="signupPassword"
+                      type="password"
+                      value={password}
+                      onChange={(e) => setPassword(e.target.value)}
+                      required
+                    />
+                  </div>
+                  <Button type="submit" className="w-full" disabled={isLoading}>
+                    {isLoading ? "Creating account..." : "Create Account"}
+                  </Button>
+                </form>
+                
+                <div className="relative my-6">
+                  <div className="absolute inset-0 flex items-center">
+                    <span className="w-full border-t border-border" />
+                  </div>
+                  <div className="relative flex justify-center text-xs uppercase">
+                    <span className="bg-card px-2 text-muted-foreground">
+                      Or continue with
+                    </span>
+                  </div>
                 </div>
+                
+                <div className="grid grid-cols-3 gap-2">
+                  <Button variant="outline" type="button" onClick={loginWithGoogle}>
+                    <Mail className="h-4 w-4 mr-2" />
+                    Google
+                  </Button>
+                  <Button variant="outline" type="button" onClick={loginWithGithub}>
+                    <Github className="h-4 w-4 mr-2" />
+                    GitHub
+                  </Button>
+                  <Button variant="outline" type="button" onClick={loginWithApple}>
+                    <FaApple className="h-4 w-4 mr-2" />
+                    Apple
+                  </Button>
+                </div>
+              </CardContent>
+              <CardFooter className="text-xs text-muted-foreground">
+                By creating an account, you agree to our Terms of Service and Privacy Policy.
               </CardFooter>
-            </form>
-          </TabsContent>
-          
-          <TabsContent value="google">
-            <CardContent className="space-y-4">
-              <div className="text-center text-muted-foreground mb-4">
-                Sign in with your Google account
-              </div>
-              <Button 
-                className="w-full" 
-                variant="outline"
-                onClick={loginWithGoogle}
-                disabled={isSubmitting}
-              >
-                <Mail className="mr-2 h-4 w-4" />
-                Continue with Google
-              </Button>
-            </CardContent>
-          </TabsContent>
-          
-          <TabsContent value="github">
-            <CardContent className="space-y-4">
-              <div className="text-center text-muted-foreground mb-4">
-                Sign in with your GitHub account
-              </div>
-              <Button 
-                className="w-full" 
-                variant="outline"
-                onClick={loginWithGithub}
-                disabled={isSubmitting}
-              >
-                <GitHub className="mr-2 h-4 w-4" />
-                Continue with GitHub
-              </Button>
-            </CardContent>
+            </Card>
           </TabsContent>
         </Tabs>
-        
-        <CardContent className="pt-4 pb-0">
-          <div className="relative">
-            <div className="absolute inset-0 flex items-center">
-              <span className="w-full border-t" />
-            </div>
-            <div className="relative flex justify-center text-xs uppercase">
-              <span className="bg-background px-2 text-muted-foreground">
-                Or continue with
-              </span>
-            </div>
-          </div>
-        </CardContent>
-        
-        <CardFooter className="flex flex-col space-y-4 mt-4">
-          <Button 
-            variant="outline" 
-            className="w-full"
-            onClick={loginWithApple}
-            disabled={isSubmitting}
-          >
-            <Apple className="mr-2 h-4 w-4" />
-            Sign in with Apple
-          </Button>
-        </CardFooter>
-      </Card>
+      </div>
     </div>
   );
 };

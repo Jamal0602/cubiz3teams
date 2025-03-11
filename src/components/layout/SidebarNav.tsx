@@ -23,14 +23,14 @@ interface SidebarNavProps {
 }
 
 const SidebarNav: React.FC<SidebarNavProps> = ({ className }) => {
-  const { user } = useAuth();
+  const { profile } = useAuth();
   const location = useLocation();
   const [collapsed, setCollapsed] = useState(false);
 
-  if (!user) return null;
+  if (!profile) return null;
 
-  const isAdmin = user.role === 'admin';
-  const isManagerOrAdmin = user.role === 'manager' || user.role === 'admin';
+  const isAdmin = profile.role === 'admin';
+  const isManagerOrAdmin = profile.role === 'manager' || profile.role === 'admin';
 
   const getInitials = (name: string) => {
     return name
@@ -131,14 +131,14 @@ const SidebarNav: React.FC<SidebarNavProps> = ({ className }) => {
         <div className="p-4">
           <div className="flex items-center gap-3">
             <Avatar className="h-10 w-10">
-              <AvatarImage src={user.avatarUrl} alt={user.name} />
+              <AvatarImage src={profile.avatar_url || undefined} alt={profile.full_name} />
               <AvatarFallback className="bg-primary text-primary-foreground">
-                {getInitials(user.name)}
+                {getInitials(profile.full_name)}
               </AvatarFallback>
             </Avatar>
             <div>
-              <p className="text-sm font-medium">{user.name}</p>
-              <p className="text-xs text-muted-foreground">{user.cubizId}</p>
+              <p className="text-sm font-medium">{profile.full_name}</p>
+              <p className="text-xs text-muted-foreground">{profile.cubiz_id}</p>
             </div>
           </div>
         </div>

@@ -2,7 +2,6 @@
 import React from 'react';
 import { useNavigate } from 'react-router-dom';
 import {
-  User,
   LogOut,
   Settings,
   UserCircle,
@@ -25,10 +24,10 @@ interface ProfileDropdownProps {
 }
 
 const ProfileDropdown: React.FC<ProfileDropdownProps> = ({ className }) => {
-  const { user, logout } = useAuth();
+  const { profile, logout } = useAuth();
   const navigate = useNavigate();
 
-  if (!user) return null;
+  if (!profile) return null;
 
   const getInitials = (name: string) => {
     return name
@@ -44,9 +43,9 @@ const ProfileDropdown: React.FC<ProfileDropdownProps> = ({ className }) => {
       <DropdownMenuTrigger asChild>
         <button className={cn("rounded-full outline-none", className)}>
           <Avatar className="h-8 w-8 select-none cursor-pointer ring-offset-background transition-opacity hover:opacity-80">
-            <AvatarImage src={user.avatarUrl} alt={user.name} />
+            <AvatarImage src={profile.avatar_url || undefined} alt={profile.full_name} />
             <AvatarFallback className="bg-primary text-primary-foreground">
-              {getInitials(user.name)}
+              {getInitials(profile.full_name)}
             </AvatarFallback>
           </Avatar>
         </button>
@@ -54,9 +53,9 @@ const ProfileDropdown: React.FC<ProfileDropdownProps> = ({ className }) => {
       <DropdownMenuContent className="w-56 animate-scale-in" align="end" forceMount>
         <DropdownMenuLabel className="font-normal">
           <div className="flex flex-col space-y-1">
-            <p className="text-sm font-medium leading-none">{user.name}</p>
+            <p className="text-sm font-medium leading-none">{profile.full_name}</p>
             <p className="text-xs leading-none text-muted-foreground">
-              {user.cubizId}
+              {profile.cubiz_id}
             </p>
           </div>
         </DropdownMenuLabel>

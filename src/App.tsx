@@ -41,61 +41,82 @@ const App = () => (
                 <Route path="/auth/callback" element={<AuthCallback />} />
                 
                 {/* Protected routes */}
-                <Route path="/dashboard" element={
-                  <ProtectedRoute>
-                    <AppLayout>
-                      <Dashboard />
-                    </AppLayout>
-                  </ProtectedRoute>
-                } />
+                <Route 
+                  path="/dashboard" 
+                  element={
+                    <ProtectedRoute>
+                      <AppLayout>
+                        <Dashboard />
+                      </AppLayout>
+                    </ProtectedRoute>
+                  } 
+                />
                 
-                <Route path="/profile" element={
-                  <ProtectedRoute>
-                    <AppLayout>
-                      <Profile />
-                    </AppLayout>
-                  </ProtectedRoute>
-                } />
+                <Route 
+                  path="/profile" 
+                  element={
+                    <ProtectedRoute>
+                      <AppLayout>
+                        <Profile />
+                      </AppLayout>
+                    </ProtectedRoute>
+                  } 
+                />
                 
-                <Route path="/teams" element={
-                  <ProtectedRoute>
-                    <AppLayout>
-                      <Teams />
-                    </AppLayout>
-                  </ProtectedRoute>
-                } />
+                <Route 
+                  path="/teams" 
+                  element={
+                    <ProtectedRoute>
+                      <AppLayout>
+                        <Teams />
+                      </AppLayout>
+                    </ProtectedRoute>
+                  } 
+                />
                 
-                <Route path="/projects" element={
-                  <ProtectedRoute>
-                    <AppLayout>
-                      <Projects />
-                    </AppLayout>
-                  </ProtectedRoute>
-                } />
+                <Route 
+                  path="/projects" 
+                  element={
+                    <ProtectedRoute>
+                      <AppLayout>
+                        <Projects />
+                      </AppLayout>
+                    </ProtectedRoute>
+                  } 
+                />
                 
-                <Route path="/events" element={
-                  <ProtectedRoute>
-                    <AppLayout>
-                      <Events />
-                    </AppLayout>
-                  </ProtectedRoute>
-                } />
+                <Route 
+                  path="/events" 
+                  element={
+                    <ProtectedRoute>
+                      <AppLayout>
+                        <Events />
+                      </AppLayout>
+                    </ProtectedRoute>
+                  } 
+                />
                 
-                <Route path="/analytics" element={
-                  <ProtectedRoute>
-                    <AppLayout>
-                      <Analytics />
-                    </AppLayout>
-                  </ProtectedRoute>
-                } />
+                <Route 
+                  path="/analytics" 
+                  element={
+                    <ProtectedRoute>
+                      <AppLayout>
+                        <Analytics />
+                      </AppLayout>
+                    </ProtectedRoute>
+                  } 
+                />
                 
-                <Route path="/notifications" element={
-                  <ProtectedRoute>
-                    <AppLayout>
-                      <Notifications />
-                    </AppLayout>
-                  </ProtectedRoute>
-                } />
+                <Route 
+                  path="/notifications" 
+                  element={
+                    <ProtectedRoute>
+                      <AppLayout>
+                        <Notifications />
+                      </AppLayout>
+                    </ProtectedRoute>
+                  } 
+                />
                 
                 {/* Catch-all route */}
                 <Route path="*" element={<NotFound />} />

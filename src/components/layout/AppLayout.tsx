@@ -7,11 +7,12 @@ import SidebarNav from './SidebarNav';
 import { cn } from '@/lib/utils';
 
 interface AppLayoutProps {
+  children?: React.ReactNode;
   requiredRoles?: Array<'admin' | 'manager' | 'employee'>;
 }
 
-const AppLayout: React.FC<AppLayoutProps> = ({ requiredRoles }) => {
-  const { user, isAuthenticated, loading } = useAuth();
+const AppLayout: React.FC<AppLayoutProps> = ({ children, requiredRoles }) => {
+  const { user, profile, isAuthenticated, loading } = useAuth();
 
   // Show loading state
   if (loading) {
@@ -31,7 +32,7 @@ const AppLayout: React.FC<AppLayoutProps> = ({ requiredRoles }) => {
   }
 
   // Check for required roles
-  if (requiredRoles && user && !requiredRoles.includes(user.role)) {
+  if (requiredRoles && profile && !requiredRoles.includes(profile.role)) {
     return <Navigate to="/unauthorized" replace />;
   }
 
@@ -44,7 +45,7 @@ const AppLayout: React.FC<AppLayoutProps> = ({ requiredRoles }) => {
           "flex-1 overflow-auto",
           "transition-all duration-300 ease-in-out"
         )}>
-          <Outlet />
+          {children || <Outlet />}
         </main>
       </div>
     </div>
