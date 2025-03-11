@@ -2,72 +2,39 @@
 import React, { createContext, useState, useContext, useEffect } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { toast } from 'sonner';
+import { supabase } from '@/integrations/supabase/client';
+import type { User } from '@supabase/supabase-js';
 
-// Define user roles
-export type UserRole = 'admin' | 'manager' | 'employee';
-
-// Define user type
-export interface User {
+// Define user profile type
+export interface UserProfile {
   id: string;
-  email: string;
-  name: string;
-  role: UserRole;
-  cubizId: string;
-  avatarUrl?: string;
+  full_name: string;
+  cubiz_id: string;
+  role: 'admin' | 'manager' | 'employee';
   department?: string;
   location?: string;
-  upiId?: string;
-  joinedAt: string;
+  upi_id?: string;
+  avatar_url?: string;
+  verified: boolean;
+  joined_at: string;
 }
 
 // Define auth context type
 interface AuthContextType {
   user: User | null;
+  profile: UserProfile | null;
   loading: boolean;
   error: string | null;
   login: (email: string, password: string) => Promise<void>;
-  logout: () => void;
+  loginWithGoogle: () => Promise<void>;
+  loginWithGithub: () => Promise<void>;
+  loginWithApple: () => Promise<void>;
+  signup: (email: string, password: string, fullName: string) => Promise<void>;
+  logout: () => Promise<void>;
   isAuthenticated: boolean;
-  updateProfile: (userData: Partial<User>) => Promise<void>;
+  updateProfile: (userData: Partial<UserProfile>) => Promise<void>;
+  refreshProfile: () => Promise<void>;
 }
-
-// Mock user data for development
-const MOCK_USERS: User[] = [
-  {
-    id: '1',
-    email: 'admin@example.com',
-    name: 'Admin User',
-    role: 'admin',
-    cubizId: 'admin@cubiz',
-    avatarUrl: 'https://i.pravatar.cc/150?img=68',
-    department: 'Management',
-    location: 'New York',
-    upiId: 'admin@upi',
-    joinedAt: new Date().toISOString(),
-  },
-  {
-    id: '2',
-    email: 'manager@example.com',
-    name: 'Manager User',
-    role: 'manager',
-    cubizId: 'manager@cubiz',
-    avatarUrl: 'https://i.pravatar.cc/150?img=48',
-    department: 'Sales',
-    location: 'Boston',
-    joinedAt: new Date().toISOString(),
-  },
-  {
-    id: '3',
-    email: 'employee@example.com',
-    name: 'Employee User',
-    role: 'employee',
-    cubizId: 'employee@cubiz',
-    avatarUrl: 'https://i.pravatar.cc/150?img=30',
-    department: 'Development',
-    location: 'San Francisco',
-    joinedAt: new Date().toISOString(),
-  },
-];
 
 // Create auth context
 const AuthContext = createContext<AuthContextType | undefined>(undefined);
@@ -75,18 +42,60 @@ const AuthContext = createContext<AuthContextType | undefined>(undefined);
 // Auth provider component
 export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children }) => {
   const [user, setUser] = useState<User | null>(null);
+  const [profile, setProfile] = useState<UserProfile | null>(null);
   const [loading, setLoading] = useState<boolean>(true);
   const [error, setError] = useState<string | null>(null);
   const navigate = useNavigate();
+
+  // Fetch user profile
+  const fetchProfile = async (userId: string) => {
+    try {
+      const { data, error } = await supabase
+        .from('profiles')
+        .select('*')
+        .eq('id', userId)
+        .single();
+
+      if (error) {
+        console.error('Error fetching profile:', error);
+        return null;
+      }
+
+      return data as UserProfile;
+    } catch (err) {
+      console.error('Profile fetch error:', err);
+      return null;
+    }
+  };
+
+  // Refresh profile data
+  const refreshProfile = async () => {
+    if (!user) return;
+    const profile = await fetchProfile(user.id);
+    if (profile) setProfile(profile);
+  };
 
   // Check for existing session on mount
   useEffect(() => {
     const checkSession = async () => {
       try {
-        // Check if user is stored in local storage
-        const storedUser = localStorage.getItem('cubiz_user');
-        if (storedUser) {
-          setUser(JSON.parse(storedUser));
+        setLoading(true);
+        
+        // Get current session
+        const { data: { session }, error: sessionError } = await supabase.auth.getSession();
+        
+        if (sessionError) {
+          throw sessionError;
+        }
+
+        if (session?.user) {
+          setUser(session.user);
+          
+          // Fetch profile data
+          const profileData = await fetchProfile(session.user.id);
+          if (profileData) {
+            setProfile(profileData);
+          }
         }
       } catch (err) {
         console.error('Session check error:', err);
@@ -97,6 +106,24 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
     };
 
     checkSession();
+
+    // Subscribe to auth changes
+    const { data: { subscription } } = supabase.auth.onAuthStateChange(async (event, session) => {
+      setUser(session?.user ?? null);
+      
+      if (session?.user) {
+        const profileData = await fetchProfile(session.user.id);
+        if (profileData) {
+          setProfile(profileData);
+        }
+      } else {
+        setProfile(null);
+      }
+    });
+
+    return () => {
+      subscription.unsubscribe();
+    };
   }, []);
 
   // Login function
@@ -105,28 +132,97 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
     setError(null);
 
     try {
-      // Simulate API call delay
-      await new Promise(resolve => setTimeout(resolve, 800));
-
-      // Find user with matching email (case insensitive)
-      const foundUser = MOCK_USERS.find(u => u.email.toLowerCase() === email.toLowerCase());
-
-      // If user not found or password is not 'password' (for testing), throw error
-      if (!foundUser || password !== 'password') {
-        throw new Error('Invalid email or password');
-      }
-
-      // Set user in state and localStorage
-      setUser(foundUser);
-      localStorage.setItem('cubiz_user', JSON.stringify(foundUser));
+      const { data, error } = await supabase.auth.signInWithPassword({ email, password });
       
-      // Show success toast
+      if (error) throw error;
+      
       toast.success('Logged in successfully');
-      
-      // Navigate to dashboard
       navigate('/dashboard');
-    } catch (err) {
-      const message = err instanceof Error ? err.message : 'An unknown error occurred';
+    } catch (err: any) {
+      const message = err?.message || 'An unknown error occurred';
+      setError(message);
+      toast.error(message);
+      throw err;
+    } finally {
+      setLoading(false);
+    }
+  };
+
+  // Login with Google
+  const loginWithGoogle = async () => {
+    try {
+      const { error } = await supabase.auth.signInWithOAuth({
+        provider: 'google',
+        options: {
+          redirectTo: `${window.location.origin}/auth/callback`
+        }
+      });
+      
+      if (error) throw error;
+    } catch (err: any) {
+      const message = err?.message || 'Failed to login with Google';
+      toast.error(message);
+      throw err;
+    }
+  };
+
+  // Login with GitHub
+  const loginWithGithub = async () => {
+    try {
+      const { error } = await supabase.auth.signInWithOAuth({
+        provider: 'github',
+        options: {
+          redirectTo: `${window.location.origin}/auth/callback`
+        }
+      });
+      
+      if (error) throw error;
+    } catch (err: any) {
+      const message = err?.message || 'Failed to login with GitHub';
+      toast.error(message);
+      throw err;
+    }
+  };
+
+  // Login with Apple
+  const loginWithApple = async () => {
+    try {
+      const { error } = await supabase.auth.signInWithOAuth({
+        provider: 'apple',
+        options: {
+          redirectTo: `${window.location.origin}/auth/callback`
+        }
+      });
+      
+      if (error) throw error;
+    } catch (err: any) {
+      const message = err?.message || 'Failed to login with Apple';
+      toast.error(message);
+      throw err;
+    }
+  };
+
+  // Sign up function
+  const signup = async (email: string, password: string, fullName: string) => {
+    setLoading(true);
+    setError(null);
+
+    try {
+      const { data, error } = await supabase.auth.signUp({ 
+        email, 
+        password,
+        options: {
+          data: {
+            full_name: fullName
+          }
+        }
+      });
+      
+      if (error) throw error;
+      
+      toast.success('Signed up successfully! Please check your email for verification.');
+    } catch (err: any) {
+      const message = err?.message || 'An unknown error occurred';
       setError(message);
       toast.error(message);
       throw err;
@@ -136,32 +232,43 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
   };
 
   // Logout function
-  const logout = () => {
-    setUser(null);
-    localStorage.removeItem('cubiz_user');
-    toast.info('Logged out successfully');
-    navigate('/login');
+  const logout = async () => {
+    setLoading(true);
+    
+    try {
+      const { error } = await supabase.auth.signOut();
+      
+      if (error) throw error;
+      
+      toast.info('Logged out successfully');
+      navigate('/login');
+    } catch (err: any) {
+      const message = err?.message || 'Failed to logout';
+      toast.error(message);
+    } finally {
+      setLoading(false);
+    }
   };
 
   // Update profile function
-  const updateProfile = async (userData: Partial<User>) => {
+  const updateProfile = async (userData: Partial<UserProfile>) => {
     if (!user) throw new Error('No authenticated user');
     setLoading(true);
     
     try {
-      // Simulate API call delay
-      await new Promise(resolve => setTimeout(resolve, 800));
+      const { error } = await supabase
+        .from('profiles')
+        .update(userData)
+        .eq('id', user.id);
       
-      // Update user with new data
-      const updatedUser = { ...user, ...userData };
+      if (error) throw error;
       
-      // Update state and localStorage
-      setUser(updatedUser);
-      localStorage.setItem('cubiz_user', JSON.stringify(updatedUser));
+      // Refresh profile data
+      await refreshProfile();
       
       toast.success('Profile updated successfully');
-    } catch (err) {
-      const message = err instanceof Error ? err.message : 'Failed to update profile';
+    } catch (err: any) {
+      const message = err?.message || 'Failed to update profile';
       setError(message);
       toast.error(message);
       throw err;
@@ -174,12 +281,18 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
     <AuthContext.Provider 
       value={{ 
         user, 
+        profile,
         loading, 
         error, 
-        login, 
+        login,
+        loginWithGoogle,
+        loginWithGithub,
+        loginWithApple,
+        signup, 
         logout, 
         isAuthenticated: !!user,
-        updateProfile
+        updateProfile,
+        refreshProfile
       }}
     >
       {children}
