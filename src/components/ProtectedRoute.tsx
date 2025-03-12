@@ -24,10 +24,15 @@ const ProtectedRoute = ({
   useEffect(() => {
     // Try to refresh the profile first to ensure we have the latest data
     const initProfile = async () => {
-      if (isAuthenticated && !profile) {
-        await refreshProfile();
+      try {
+        if (isAuthenticated && !profile) {
+          await refreshProfile();
+        }
+      } catch (error) {
+        console.error("Failed to refresh profile:", error);
+      } finally {
+        setIsChecking(false);
       }
-      setIsChecking(false);
     };
 
     initProfile();
@@ -39,14 +44,14 @@ const ProtectedRoute = ({
       // Not authenticated, redirect to login
       if (!isAuthenticated) {
         toast.error('You need to be logged in to access this page');
-        navigate('/login');
+        navigate('/login', { replace: true });
         return;
       }
       
       // Check if user is verified when required
       if (verificationRequired && profile && !profile.verified && profile.role !== 'admin') {
         toast.error('Your account is pending verification');
-        navigate('/verification-pending');
+        navigate('/verification-pending', { replace: true });
         return;
       }
       
@@ -54,7 +59,7 @@ const ProtectedRoute = ({
       if (requiredRole && profile && profile.role !== requiredRole) {
         if (profile.role !== 'admin') { // Admins can access everything
           toast.error(`Only ${requiredRole}s can access this page`);
-          navigate('/dashboard');
+          navigate('/dashboard', { replace: true });
           return;
         }
       }

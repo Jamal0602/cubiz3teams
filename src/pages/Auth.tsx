@@ -22,8 +22,15 @@ const Auth = () => {
   const [department, setDepartment] = useState("");
   const [isLoading, setIsLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
-  const { login, signup, loginWithGoogle, loginWithGithub, loginWithApple } = useAuth();
+  const { login, signup, loginWithGoogle, loginWithGithub, loginWithApple, isAuthenticated } = useAuth();
   const navigate = useNavigate();
+
+  // Redirect if already authenticated
+  useState(() => {
+    if (isAuthenticated) {
+      navigate('/dashboard');
+    }
+  });
 
   const handleEmailLogin = async (e: React.FormEvent) => {
     e.preventDefault();
@@ -32,7 +39,7 @@ const Auth = () => {
     
     try {
       await login(email, password);
-      navigate("/dashboard");
+      // No need to navigate here as AuthContext will handle redirects
     } catch (err: any) {
       setError(err.message || "Failed to log in");
     } finally {
@@ -63,8 +70,7 @@ const Auth = () => {
         skills: skills.split(',').map(skill => skill.trim()),
         department
       });
-      // Redirect to verification pending page
-      navigate("/verification-pending");
+      // Redirect handled by AuthContext
     } catch (err: any) {
       setError(err.message || "Failed to sign up");
     } finally {
@@ -78,9 +84,9 @@ const Auth = () => {
         <div className="flex justify-center mb-8">
           <div className="flex items-center gap-2">
             <div className="w-10 h-10 rounded-lg bg-primary flex items-center justify-center text-primary-foreground font-bold text-2xl">
-              C
+              T
             </div>
-            <h1 className="font-bold text-2xl">Cubiz Teams</h1>
+            <h1 className="font-bold text-2xl">Teamz</h1>
           </div>
         </div>
         
@@ -172,7 +178,7 @@ const Auth = () => {
               <CardHeader>
                 <CardTitle>Create an account</CardTitle>
                 <CardDescription>
-                  Enter your details to create a new Cubiz Teams account
+                  Enter your details to create a new Teamz account
                 </CardDescription>
               </CardHeader>
               <CardContent>

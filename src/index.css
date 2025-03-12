@@ -17,6 +17,7 @@
     --popover-foreground: 222.2 84% 4.9%;
 
     --primary: 210 100% 50%;
+    --primary-rgb: 0, 122, 255;
     --primary-foreground: 210 40% 98%;
 
     --secondary: 210 40% 96.1%;
@@ -58,6 +59,7 @@
     --popover-foreground: 210 40% 98%;
 
     --primary: 210 100% 50%;
+    --primary-rgb: 0, 122, 255;
     --primary-foreground: 222.2 47.4% 11.2%;
 
     --secondary: 217.2 32.6% 17.5%;
@@ -97,6 +99,7 @@
     --popover-foreground: 0 0% 98%;
 
     --primary: 180 100% 50%;
+    --primary-rgb: 0, 255, 255;
     --primary-foreground: 0 0% 0%;
 
     --secondary: 300 100% 50%;
@@ -184,4 +187,25 @@
                  0 0 10px currentColor,
                  0 0 15px currentColor;
   }
+
+  /* Mobile responsiveness helpers */
+  @media (max-width: 640px) {
+    .container {
+      padding-left: 1rem;
+      padding-right: 1rem;
+    }
+  }
+}
+
+/* Add responsive utilities */
+.responsive-grid {
+  @apply grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-4;
+}
+
+.responsive-padding {
+  @apply p-2 sm:p-4 md:p-6;
+}
+
+.responsive-text {
+  @apply text-sm sm:text-base md:text-lg;
 }

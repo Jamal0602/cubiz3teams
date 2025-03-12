@@ -27,9 +27,9 @@ export const CubeLoader = ({ size = "md", text, className }: CubeLoaderProps) =>
         <div className="cube-face cube-face-left"></div>
         <div className="cube-face cube-face-right"></div>
       </div>
-      {text && <p className="text-muted-foreground text-sm">{text}</p>}
+      {text && <p className="text-muted-foreground text-sm text-center">{text}</p>}
       
-      <style dangerouslySetInnerHTML={{ __html: `
+      <style jsx>{`
         .cube-loader {
           position: relative;
           transform-style: preserve-3d;
@@ -98,7 +98,7 @@ export const CubeLoader = ({ size = "md", text, className }: CubeLoaderProps) =>
         .cube-loader.w-24 {
           --size: 6rem;
         }
-      `}} />
+      `}</style>
     </div>
   )
 }
