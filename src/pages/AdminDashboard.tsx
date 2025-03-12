@@ -1,4 +1,3 @@
-
 import React, { useState, useEffect } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { useAuth } from '@/contexts/AuthContext';
@@ -9,6 +8,10 @@ import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
 import { Badge } from '@/components/ui/badge';
 import { Avatar, AvatarFallback, AvatarImage } from '@/components/ui/avatar';
 import { CubeLoader } from '@/components/ui/cube-loader';
+import { Input } from '@/components/ui/input';
+import { Textarea } from '@/components/ui/textarea';
+import { Checkbox } from '@/components/ui/checkbox';
+import { Label } from '@/components/ui/label';
 import { toast } from 'sonner';
 import { UserCheck, UserX, AlertCircle, Users, Award, Star, Bell, Upload, CheckCircle, Briefcase } from 'lucide-react';
 import { UserProfile } from '@/contexts/AuthContext';
@@ -45,35 +48,26 @@ const AdminDashboard = () => {
   const fetchUsers = async () => {
     setIsLoadingUsers(true);
     try {
-      // Fetch profiles with auth data
+      // Fetch profiles 
       const { data: profiles, error } = await supabase
         .from('profiles')
         .select('*');
       
       if (error) throw error;
-
-      // Fetch users from auth.users to get emails (admin has access)
-      const { data: users, error: userError } = await supabase
-        .from('users')
-        .select('id, email')
-        .throwOnError();
       
-      if (userError) {
-        console.error('Could not fetch user emails:', userError);
-      }
-
-      // Combine profile data with emails
-      const combinedData = profiles.map(profile => {
-        const user = users?.find(u => u.id === profile.id);
-        return {
-          ...profile,
-          email: user?.email || 'Unknown'
-        };
-      });
+      // Get email addresses from auth.users (this requires admin privileges)
+      // Since we can't query auth.users directly via the JavaScript API,
+      // we'll assume emails match the Cubiz ID format or leave as unknown
+      
+      // Prepare user data
+      const usersWithEmail = profiles.map(profile => ({
+        ...profile,
+        email: `${profile.cubiz_id.split('@')[0]}@example.com` // Placeholder email
+      }));
 
       // Filter users
-      const pendingVerification = combinedData.filter(user => !user.verified && user.role === 'employee');
-      const pendingManagerPromotion = combinedData.filter(user => {
+      const pendingVerification = usersWithEmail.filter(user => !user.verified && user.role === 'employee');
+      const pendingManagerPromotion = usersWithEmail.filter(user => {
         return user.verified && 
                user.role === 'employee' && 
                (user.rank_points || 0) >= 220;
@@ -82,7 +76,7 @@ const AdminDashboard = () => {
       // Set state
       setPendingUsers(pendingVerification);
       setPendingManagers(pendingManagerPromotion);
-      setAllUsers(combinedData);
+      setAllUsers(usersWithEmail);
       
     } catch (error: any) {
       console.error('Error fetching users:', error);
@@ -94,6 +88,7 @@ const AdminDashboard = () => {
 
   const verifyUser = async (userId: string) => {
     try {
+      // First update rank_points directly
       const { error } = await supabase
         .from('profiles')
         .update({ 
@@ -114,6 +109,7 @@ const AdminDashboard = () => {
 
   const promoteToManager = async (userId: string) => {
     try {
+      // First update rank_points directly
       const { error } = await supabase
         .from('profiles')
         .update({ 
@@ -531,27 +527,25 @@ const AdminDashboard = () => {
                 <div className="space-y-2">
                   <Label>Recipients</Label>
                   <div className="grid grid-cols-3 gap-2">
-                    <Button variant="outline" className="justify-start">
-                      <input type="checkbox" className="mr-2" />
-                      All Users
-                    </Button>
-                    <Button variant="outline" className="justify-start">
-                      <input type="checkbox" className="mr-2" />
-                      Managers
-                    </Button>
-                    <Button variant="outline" className="justify-start">
-                      <input type="checkbox" className="mr-2" />
-                      Employees
-                    </Button>
+                    <div className="flex items-center space-x-2">
+                      <Checkbox id="all-users" />
+                      <Label htmlFor="all-users">All Users</Label>
+                    </div>
+                    <div className="flex items-center space-x-2">
+                      <Checkbox id="managers" />
+                      <Label htmlFor="managers">Managers</Label>
+                    </div>
+                    <div className="flex items-center space-x-2">
+                      <Checkbox id="employees" />
+                      <Label htmlFor="employees">Employees</Label>
+                    </div>
                   </div>
                 </div>
                 <div className="space-y-2">
                   <Label>Options</Label>
                   <div className="flex items-center space-x-2">
                     <Checkbox id="send-email" />
-                    <label htmlFor="send-email" className="text-sm font-medium leading-none peer-disabled:cursor-not-allowed peer-disabled:opacity-70">
-                      Also send as email
-                    </label>
+                    <Label htmlFor="send-email">Also send as email</Label>
                   </div>
                 </div>
                 <Button>Send Notification</Button>

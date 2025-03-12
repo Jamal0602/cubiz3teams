@@ -243,37 +243,46 @@ export type Database = {
       profiles: {
         Row: {
           avatar_url: string | null
+          bio: string | null
           cubiz_id: string
           department: string | null
           full_name: string
           id: string
           joined_at: string
           location: string | null
+          rank_points: number
           role: Database["public"]["Enums"]["user_role"]
+          skills: string[] | null
           upi_id: string | null
           verified: boolean
         }
         Insert: {
           avatar_url?: string | null
+          bio?: string | null
           cubiz_id: string
           department?: string | null
           full_name: string
           id: string
           joined_at?: string
           location?: string | null
+          rank_points?: number
           role?: Database["public"]["Enums"]["user_role"]
+          skills?: string[] | null
           upi_id?: string | null
           verified?: boolean
         }
         Update: {
           avatar_url?: string | null
+          bio?: string | null
           cubiz_id?: string
           department?: string | null
           full_name?: string
           id?: string
           joined_at?: string
           location?: string | null
+          rank_points?: number
           role?: Database["public"]["Enums"]["user_role"]
+          skills?: string[] | null
           upi_id?: string | null
           verified?: boolean
         }
@@ -562,6 +571,13 @@ export type Database = {
       [_ in never]: never
     }
     Functions: {
+      add_rank_points: {
+        Args: {
+          user_id: string
+          points: number
+        }
+        Returns: number
+      }
       generate_cubiz_id: {
         Args: {
           name: string
