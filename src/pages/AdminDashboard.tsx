@@ -1,3 +1,4 @@
+
 import React, { useState, useEffect } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { useAuth } from '@/contexts/AuthContext';
@@ -88,16 +89,23 @@ const AdminDashboard = () => {
 
   const verifyUser = async (userId: string) => {
     try {
-      // First update rank_points directly
+      // Update user verification status
       const { error } = await supabase
         .from('profiles')
         .update({ 
-          verified: true,
-          rank_points: supabase.rpc('add_rank_points', { user_id: userId, points: 30 })
+          verified: true
         })
         .eq('id', userId);
       
       if (error) throw error;
+      
+      // Add rank points in a separate query
+      const { error: pointsError } = await supabase.rpc('add_rank_points', {
+        user_id: userId,
+        points: 30
+      });
+      
+      if (pointsError) throw pointsError;
       
       toast.success('User verified successfully');
       fetchUsers();
@@ -109,16 +117,23 @@ const AdminDashboard = () => {
 
   const promoteToManager = async (userId: string) => {
     try {
-      // First update rank_points directly
+      // Update user role
       const { error } = await supabase
         .from('profiles')
         .update({ 
-          role: 'manager',
-          rank_points: supabase.rpc('add_rank_points', { user_id: userId, points: 80 })
+          role: 'manager'
         })
         .eq('id', userId);
       
       if (error) throw error;
+      
+      // Add rank points in a separate query
+      const { error: pointsError } = await supabase.rpc('add_rank_points', {
+        user_id: userId,
+        points: 80
+      });
+      
+      if (pointsError) throw pointsError;
       
       toast.success('User promoted to manager');
       fetchUsers();
@@ -237,7 +252,7 @@ const AdminDashboard = () => {
                             <p className="text-sm text-muted-foreground">{user.cubiz_id}</p>
                           </div>
                         </div>
-                        <Badge variant={user.verified ? "success" : "secondary"}>
+                        <Badge variant={user.verified ? "default" : "secondary"}>
                           {user.verified ? 'Verified' : 'Pending'}
                         </Badge>
                       </div>

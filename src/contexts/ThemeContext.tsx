@@ -18,14 +18,14 @@ export const ThemeProvider: React.FC<{ children: React.ReactNode }> = ({ childre
   // Initialize theme from localStorage or default to 'light'
   const [theme, setThemeState] = useState<ThemeMode>(() => {
     // Check localStorage for saved theme
-    const savedTheme = localStorage.getItem('cubiz_theme') as ThemeMode;
+    const savedTheme = localStorage.getItem('teamz_theme') as ThemeMode;
     return savedTheme || 'light';
   });
 
   // Effect to update document class and localStorage when theme changes
   useEffect(() => {
     // Save to localStorage
-    localStorage.setItem('cubiz_theme', theme);
+    localStorage.setItem('teamz_theme', theme);
     
     // Update document classes
     const root = document.documentElement;
