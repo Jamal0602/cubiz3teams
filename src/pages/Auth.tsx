@@ -7,14 +7,19 @@ import { Input } from "@/components/ui/input";
 import { Button } from "@/components/ui/button";
 import { Label } from "@/components/ui/label";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
-import { Github, Mail, AlertCircle } from "lucide-react";
+import { Github, Mail, AlertCircle, Briefcase } from "lucide-react";
 import { Alert, AlertDescription } from "@/components/ui/alert";
 import { FaApple } from "react-icons/fa";
+import { Badge } from "@/components/ui/badge";
+import { Textarea } from "@/components/ui/textarea";
 
 const Auth = () => {
   const [email, setEmail] = useState("");
   const [password, setPassword] = useState("");
   const [fullName, setFullName] = useState("");
+  const [bio, setBio] = useState("");
+  const [skills, setSkills] = useState("");
+  const [department, setDepartment] = useState("");
   const [isLoading, setIsLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const { login, signup, loginWithGoogle, loginWithGithub, loginWithApple } = useAuth();
@@ -40,9 +45,26 @@ const Auth = () => {
     setError(null);
     setIsLoading(true);
     
+    if (bio.length > 120) {
+      setError("Bio must be less than 120 characters");
+      setIsLoading(false);
+      return;
+    }
+    
+    if (!skills.trim()) {
+      setError("Please enter at least one skill");
+      setIsLoading(false);
+      return;
+    }
+    
     try {
-      await signup(email, password, fullName);
-      // Don't navigate - wait for email verification
+      await signup(email, password, fullName, {
+        bio,
+        skills: skills.split(',').map(skill => skill.trim()),
+        department
+      });
+      // Redirect to verification pending page
+      navigate("/verification-pending");
     } catch (err: any) {
       setError(err.message || "Failed to sign up");
     } finally {
@@ -183,6 +205,52 @@ const Auth = () => {
                       onChange={(e) => setEmail(e.target.value)}
                       required
                     />
+                  </div>
+                  <div className="space-y-2">
+                    <Label htmlFor="department">Department</Label>
+                    <Input
+                      id="department"
+                      type="text"
+                      placeholder="e.g. Engineering, Marketing, etc."
+                      value={department}
+                      onChange={(e) => setDepartment(e.target.value)}
+                    />
+                  </div>
+                  <div className="space-y-2">
+                    <div className="flex items-center justify-between">
+                      <Label htmlFor="bio">Bio <span className="text-xs text-muted-foreground">({bio.length}/120)</span></Label>
+                    </div>
+                    <Textarea
+                      id="bio"
+                      placeholder="Tell us a bit about yourself..."
+                      value={bio}
+                      onChange={(e) => setBio(e.target.value)}
+                      maxLength={120}
+                      className={bio.length > 120 ? "border-destructive" : ""}
+                    />
+                  </div>
+                  <div className="space-y-2">
+                    <Label htmlFor="skills">Skills (comma separated)</Label>
+                    <Input
+                      id="skills"
+                      type="text"
+                      placeholder="e.g. React, Project Management, Design"
+                      value={skills}
+                      onChange={(e) => setSkills(e.target.value)}
+                      required
+                    />
+                    {skills && (
+                      <div className="flex flex-wrap gap-2 mt-2">
+                        {skills.split(',').map((skill, index) => (
+                          skill.trim() && (
+                            <Badge key={index} variant="secondary" className="flex items-center">
+                              <Briefcase className="h-3 w-3 mr-1" />
+                              {skill.trim()}
+                            </Badge>
+                          )
+                        ))}
+                      </div>
+                    )}
                   </div>
                   <div className="space-y-2">
                     <Label htmlFor="signupPassword">Password</Label>

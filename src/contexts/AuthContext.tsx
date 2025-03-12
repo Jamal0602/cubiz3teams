@@ -17,6 +17,9 @@ export interface UserProfile {
   avatar_url?: string;
   verified: boolean;
   joined_at: string;
+  bio?: string;
+  skills?: string[];
+  rank_points?: number;
 }
 
 // Define auth context type
@@ -29,7 +32,7 @@ interface AuthContextType {
   loginWithGoogle: () => Promise<void>;
   loginWithGithub: () => Promise<void>;
   loginWithApple: () => Promise<void>;
-  signup: (email: string, password: string, fullName: string) => Promise<void>;
+  signup: (email: string, password: string, fullName: string, additionalData?: any) => Promise<void>;
   logout: () => Promise<void>;
   isAuthenticated: boolean;
   updateProfile: (userData: Partial<UserProfile>) => Promise<void>;
@@ -136,8 +139,16 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
       
       if (error) throw error;
       
-      toast.success('Logged in successfully');
-      navigate('/dashboard');
+      const profile = await fetchProfile(data.user.id);
+      
+      if (profile && !profile.verified && profile.role !== 'admin') {
+        // Redirect to verification pending page for non-admin unverified users
+        navigate('/verification-pending');
+        toast.info('Your account is pending verification');
+      } else {
+        toast.success('Logged in successfully');
+        navigate('/dashboard');
+      }
     } catch (err: any) {
       const message = err?.message || 'An unknown error occurred';
       setError(message);
@@ -203,24 +214,33 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
   };
 
   // Sign up function
-  const signup = async (email: string, password: string, fullName: string) => {
+  const signup = async (email: string, password: string, fullName: string, additionalData: any = {}) => {
     setLoading(true);
     setError(null);
 
     try {
+      // Add the additional data to the user metadata
+      const userData = {
+        full_name: fullName,
+        bio: additionalData.bio || '',
+        skills: additionalData.skills || [],
+        department: additionalData.department || '',
+        initial_rank_points: 20 // Initial rank points for signup
+      };
+
       const { data, error } = await supabase.auth.signUp({ 
         email, 
         password,
         options: {
-          data: {
-            full_name: fullName
-          }
+          data: userData
         }
       });
       
       if (error) throw error;
       
-      toast.success('Signed up successfully! Please check your email for verification.');
+      // Redirect to verification pending page
+      navigate('/verification-pending');
+      toast.success('Signed up successfully! Your account is pending verification.');
     } catch (err: any) {
       const message = err?.message || 'An unknown error occurred';
       setError(message);

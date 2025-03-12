@@ -22,6 +22,8 @@ import Events from "@/pages/Events";
 import Analytics from "@/pages/Analytics";
 import Notifications from "@/pages/Notifications";
 import NotFound from "@/pages/NotFound";
+import VerificationPending from "@/pages/VerificationPending";
+import AdminDashboard from "@/pages/AdminDashboard";
 
 const queryClient = new QueryClient();
 
@@ -39,6 +41,7 @@ const App = () => (
                 <Route path="/" element={<Index />} />
                 <Route path="/login" element={<Auth />} />
                 <Route path="/auth/callback" element={<AuthCallback />} />
+                <Route path="/verification-pending" element={<VerificationPending />} />
                 
                 {/* Protected routes */}
                 <Route 
@@ -113,6 +116,18 @@ const App = () => (
                     <ProtectedRoute>
                       <AppLayout>
                         <Notifications />
+                      </AppLayout>
+                    </ProtectedRoute>
+                  } 
+                />
+                
+                {/* Admin routes */}
+                <Route 
+                  path="/admin" 
+                  element={
+                    <ProtectedRoute requiredRole="admin">
+                      <AppLayout>
+                        <AdminDashboard />
                       </AppLayout>
                     </ProtectedRoute>
                   } 

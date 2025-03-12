@@ -10,13 +10,17 @@ import {
   Settings,
   ChevronLeft,
   ChevronRight,
-  UserCircle
+  UserCircle,
+  ShieldAlert,
+  Bug,
+  Star
 } from 'lucide-react';
 import { cn } from '@/lib/utils';
 import { useAuth } from '@/contexts/AuthContext';
 import { Button } from '@/components/ui/button';
 import { Avatar, AvatarFallback, AvatarImage } from '@/components/ui/avatar';
 import { Separator } from '@/components/ui/separator';
+import { Badge } from '@/components/ui/badge';
 
 interface SidebarNavProps {
   className?: string;
@@ -47,6 +51,14 @@ const SidebarNav: React.FC<SidebarNavProps> = ({ className }) => {
       href: '/dashboard',
       icon: LayoutDashboard,
       exact: true,
+      show: true,
+    },
+    {
+      name: 'Admin Dashboard',
+      href: '/admin',
+      icon: ShieldAlert,
+      exact: false,
+      show: isAdmin,
     },
     {
       name: 'Teams',
@@ -75,6 +87,13 @@ const SidebarNav: React.FC<SidebarNavProps> = ({ className }) => {
       icon: BarChart3,
       exact: false,
       show: isManagerOrAdmin,
+    },
+    {
+      name: 'Community',
+      href: '/community',
+      icon: Users,
+      exact: false,
+      show: true,
     },
     {
       name: 'Profile',
@@ -108,7 +127,7 @@ const SidebarNav: React.FC<SidebarNavProps> = ({ className }) => {
             <div className="w-8 h-8 rounded-md bg-primary flex items-center justify-center text-primary-foreground font-bold">
               C
             </div>
-            <h1 className="font-bold text-lg">Cubiz</h1>
+            <h1 className="font-bold text-lg">Cubiz Teams</h1>
           </div>
         )}
         <Button
@@ -130,15 +149,25 @@ const SidebarNav: React.FC<SidebarNavProps> = ({ className }) => {
       {!collapsed && (
         <div className="p-4">
           <div className="flex items-center gap-3">
-            <Avatar className="h-10 w-10">
+            <Avatar className="h-10 w-10 relative">
               <AvatarImage src={profile.avatar_url || undefined} alt={profile.full_name} />
               <AvatarFallback className="bg-primary text-primary-foreground">
                 {getInitials(profile.full_name)}
               </AvatarFallback>
+              {profile.verified && (
+                <Badge className="absolute -bottom-1 -right-1 h-5 w-5 p-0 flex items-center justify-center rounded-full bg-primary">
+                  <Star className="h-3 w-3 text-white" />
+                </Badge>
+              )}
             </Avatar>
             <div>
               <p className="text-sm font-medium">{profile.full_name}</p>
-              <p className="text-xs text-muted-foreground">{profile.cubiz_id}</p>
+              <div className="flex items-center gap-1">
+                <p className="text-xs text-muted-foreground">{profile.cubiz_id}</p>
+                <Badge variant="outline" className="h-4 text-[10px] bg-primary/10 text-primary px-1">
+                  {profile.rank_points || 0} RP
+                </Badge>
+              </div>
             </div>
           </div>
         </div>
@@ -169,7 +198,21 @@ const SidebarNav: React.FC<SidebarNavProps> = ({ className }) => {
       </nav>
 
       <div className="p-4">
-        <div className={cn("text-xs text-muted-foreground", collapsed && "hidden")}>
+        <a 
+          href="https://github.com/cubiz-app/issues/new" 
+          target="_blank" 
+          rel="noopener noreferrer"
+          className={cn(
+            "flex items-center gap-3 rounded-md px-3 py-2 text-sm transition-colors",
+            "text-sidebar-foreground hover:bg-sidebar-accent/50 hover:text-sidebar-accent-foreground",
+            collapsed && "justify-center"
+          )}
+        >
+          <Bug className="h-5 w-5" />
+          {!collapsed && <span>Report Issue</span>}
+        </a>
+        
+        <div className={cn("mt-4 text-xs text-muted-foreground", collapsed && "hidden")}>
           <p>Cubiz Team Manager</p>
           <p>v1.0.0</p>
         </div>
