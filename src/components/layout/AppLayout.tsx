@@ -1,6 +1,6 @@
 
 import React, { useEffect, useState } from 'react';
-import { Navigate, Outlet, useNavigate } from 'react-router-dom';
+import { Navigate, Outlet } from 'react-router-dom';
 import { useAuth } from '@/contexts/AuthContext';
 import TopNav from './TopNav';
 import SidebarNav from './SidebarNav';
@@ -21,20 +21,14 @@ const AppLayout: React.FC<AppLayoutProps> = ({
 }) => {
   const { user, profile, isAuthenticated, loading, refreshProfile } = useAuth();
   const [isChecking, setIsChecking] = useState<boolean>(true);
-  const navigate = useNavigate();
 
   useEffect(() => {
     // Try to refresh the profile to ensure we have the latest data
     const initProfile = async () => {
-      try {
-        if (isAuthenticated && !profile) {
-          await refreshProfile();
-        }
-      } catch (error) {
-        console.error("Failed to refresh profile:", error);
-      } finally {
-        setIsChecking(false);
+      if (isAuthenticated && !profile) {
+        await refreshProfile();
       }
+      setIsChecking(false);
     };
 
     initProfile();
@@ -68,17 +62,17 @@ const AppLayout: React.FC<AppLayoutProps> = ({
     
     if (!hasRequiredRole) {
       toast.error('You do not have permission to access this page');
-      return <Navigate to="/dashboard" replace />;
+      return <Navigate to="/unauthorized" replace />;
     }
   }
 
   return (
-    <div className="flex min-h-screen flex-col md:flex-row">
+    <div className="flex min-h-screen">
       <SidebarNav />
       <div className="flex-1 flex flex-col min-h-screen overflow-hidden">
         <TopNav />
         <main className={cn(
-          "flex-1 overflow-auto p-4",
+          "flex-1 overflow-auto",
           "transition-all duration-300 ease-in-out"
         )}>
           {children || <Outlet />}
