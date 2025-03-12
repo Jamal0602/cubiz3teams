@@ -13,7 +13,7 @@ const Index = () => {
       <div className="container mx-auto px-4 py-16 sm:py-24 flex flex-col items-center text-center">
         <h1 className="text-4xl sm:text-5xl md:text-6xl font-extrabold tracking-tight">
           <span className="bg-clip-text text-transparent bg-gradient-to-r from-primary to-violet-500">
-            Cubiz Teams
+            Teamz
           </span>
         </h1>
         <p className="mt-6 text-xl text-muted-foreground max-w-3xl">

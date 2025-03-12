@@ -125,9 +125,9 @@ const SidebarNav: React.FC<SidebarNavProps> = ({ className }) => {
         {!collapsed && (
           <div className="flex items-center gap-2">
             <div className="w-8 h-8 rounded-md bg-primary flex items-center justify-center text-primary-foreground font-bold">
-              C
+              T
             </div>
-            <h1 className="font-bold text-lg">Cubiz Teams</h1>
+            <h1 className="font-bold text-lg">Teamz</h1>
           </div>
         )}
         <Button
@@ -213,7 +213,7 @@ const SidebarNav: React.FC<SidebarNavProps> = ({ className }) => {
         </a>
         
         <div className={cn("mt-4 text-xs text-muted-foreground", collapsed && "hidden")}>
-          <p>Cubiz Team Manager</p>
+          <p>Teamz</p>
           <p>v1.0.0</p>
         </div>
       </div>
