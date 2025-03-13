@@ -28,12 +28,15 @@ const ProtectedRoute = ({
     const initProfile = async () => {
       try {
         console.log('ProtectedRoute: Initializing profile check, authenticated:', isAuthenticated);
-        if (isAuthenticated && !profile && retries < 3) {
+        if (isAuthenticated && !profile && retries < 2) { // Reduced max retries
           console.log(`ProtectedRoute: Refreshing profile (attempt ${retries + 1})`);
           await refreshProfile();
           setRetries(prev => prev + 1);
         }
-        setIsChecking(false);
+        // Speed up the verification process
+        setTimeout(() => {
+          setIsChecking(false);
+        }, 300); // Reduced timeout
       } catch (error) {
         console.error('Error initializing profile:', error);
         setIsChecking(false);

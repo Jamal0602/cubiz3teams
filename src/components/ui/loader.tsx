@@ -25,6 +25,14 @@ export const Loader = ({ size = "md", text, className }: LoaderProps) => {
     } else {
       setIsScriptLoaded(true);
     }
+
+    // Make sure we clean up script if component unmounts during loading
+    return () => {
+      const pendingScript = document.querySelector('script[src*="dotlottie-player"][data-loading="true"]');
+      if (pendingScript) {
+        pendingScript.remove();
+      }
+    };
   }, []);
 
   const sizeClass = {
