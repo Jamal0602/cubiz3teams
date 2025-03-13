@@ -24,6 +24,9 @@ import Notifications from "@/pages/Notifications";
 import NotFound from "@/pages/NotFound";
 import VerificationPending from "@/pages/VerificationPending";
 import AdminDashboard from "@/pages/AdminDashboard";
+import Settings from "@/pages/Settings";
+import Community from "@/pages/Community";
+import Files from "@/pages/Files";
 
 const queryClient = new QueryClient();
 
@@ -116,6 +119,39 @@ const App = () => (
                     <ProtectedRoute>
                       <AppLayout>
                         <Notifications />
+                      </AppLayout>
+                    </ProtectedRoute>
+                  } 
+                />
+                
+                <Route 
+                  path="/settings" 
+                  element={
+                    <ProtectedRoute>
+                      <AppLayout>
+                        <Settings />
+                      </AppLayout>
+                    </ProtectedRoute>
+                  } 
+                />
+                
+                <Route 
+                  path="/community" 
+                  element={
+                    <ProtectedRoute>
+                      <AppLayout>
+                        <Community />
+                      </AppLayout>
+                    </ProtectedRoute>
+                  } 
+                />
+                
+                <Route 
+                  path="/files" 
+                  element={
+                    <ProtectedRoute>
+                      <AppLayout>
+                        <Files />
                       </AppLayout>
                     </ProtectedRoute>
                   } 

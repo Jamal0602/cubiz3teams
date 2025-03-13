@@ -2,14 +2,32 @@
 import { Button } from "@/components/ui/button";
 import { useNavigate } from "react-router-dom";
 import { useAuth } from "@/contexts/AuthContext";
+import { LogOut } from "lucide-react";
 
 const Index = () => {
   const navigate = useNavigate();
-  const { isAuthenticated } = useAuth();
+  const { isAuthenticated, logout } = useAuth();
+
+  const handleLogout = async () => {
+    await logout();
+  };
 
   return (
     <div className="min-h-screen bg-gradient-to-b from-background to-muted">
       {/* Hero Section */}
+      <div className="container mx-auto px-4 py-8 sm:py-12 md:py-16 flex justify-between items-center">
+        <div className="flex items-center gap-3">
+          <img src="/logo.png" alt="Teamz" className="h-12 w-12" />
+          <h1 className="text-3xl font-bold">Teamz</h1>
+        </div>
+        {isAuthenticated && (
+          <Button variant="outline" onClick={handleLogout} className="flex items-center gap-2">
+            <LogOut className="h-4 w-4" />
+            Logout
+          </Button>
+        )}
+      </div>
+
       <div className="container mx-auto px-4 py-16 sm:py-24 flex flex-col items-center text-center">
         <h1 className="text-4xl sm:text-5xl md:text-6xl font-extrabold tracking-tight">
           <span className="bg-clip-text text-transparent bg-gradient-to-r from-primary to-violet-500">

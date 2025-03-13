@@ -6,7 +6,7 @@ import TopNav from './TopNav';
 import SidebarNav from './SidebarNav';
 import { cn } from '@/lib/utils';
 import { toast } from 'sonner';
-import { CubeLoader } from '@/components/ui/cube-loader';
+import { Loader } from '@/components/ui/loader';
 
 interface AppLayoutProps {
   children?: React.ReactNode;
@@ -38,7 +38,7 @@ const AppLayout: React.FC<AppLayoutProps> = ({
   if (loading || isChecking) {
     return (
       <div className="flex items-center justify-center h-screen">
-        <CubeLoader size="lg" text="Loading your workspace..." />
+        <Loader size="lg" text="Loading your workspace..." />
       </div>
     );
   }

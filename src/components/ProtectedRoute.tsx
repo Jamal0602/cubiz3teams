@@ -3,7 +3,7 @@ import { ReactNode, useEffect, useState } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { useAuth } from '@/contexts/AuthContext';
 import { toast } from 'sonner';
-import { CubeLoader } from '@/components/ui/cube-loader';
+import { Loader } from '@/components/ui/loader';
 
 interface ProtectedRouteProps {
   children: ReactNode;
@@ -68,7 +68,7 @@ const ProtectedRoute = ({
   if (loading || isChecking) {
     return (
       <div className="flex items-center justify-center min-h-screen">
-        <CubeLoader size="lg" text="Loading..." />
+        <Loader size="md" text="Loading..." />
       </div>
     );
   }

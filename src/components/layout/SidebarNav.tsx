@@ -1,6 +1,6 @@
 
-import React, { useState } from 'react';
-import { NavLink, useLocation } from 'react-router-dom';
+import React, { useState, useEffect } from 'react';
+import { NavLink, useLocation, useNavigate } from 'react-router-dom';
 import {
   LayoutDashboard,
   Users,
@@ -13,7 +13,11 @@ import {
   UserCircle,
   ShieldAlert,
   Bug,
-  Star
+  Star,
+  Clock,
+  LogOut,
+  FileText,
+  Share2
 } from 'lucide-react';
 import { cn } from '@/lib/utils';
 import { useAuth } from '@/contexts/AuthContext';
@@ -27,9 +31,27 @@ interface SidebarNavProps {
 }
 
 const SidebarNav: React.FC<SidebarNavProps> = ({ className }) => {
-  const { profile } = useAuth();
+  const { profile, logout } = useAuth();
   const location = useLocation();
+  const navigate = useNavigate();
   const [collapsed, setCollapsed] = useState(false);
+  const [currentTime, setCurrentTime] = useState(new Date());
+
+  useEffect(() => {
+    const timer = setInterval(() => {
+      setCurrentTime(new Date());
+    }, 60000); // Update every minute
+    
+    return () => clearInterval(timer);
+  }, []);
+
+  const formatTime = (date: Date) => {
+    return date.toLocaleTimeString('en-US', { 
+      hour: '2-digit', 
+      minute: '2-digit',
+      hour12: false
+    });
+  };
 
   if (!profile) return null;
 
@@ -43,6 +65,11 @@ const SidebarNav: React.FC<SidebarNavProps> = ({ className }) => {
       .join('')
       .toUpperCase()
       .substring(0, 2);
+  };
+
+  const handleLogout = async () => {
+    await logout();
+    navigate('/');
   };
 
   const navigation = [
@@ -96,6 +123,13 @@ const SidebarNav: React.FC<SidebarNavProps> = ({ className }) => {
       show: true,
     },
     {
+      name: 'File Sharing',
+      href: '/files',
+      icon: Share2,
+      exact: false,
+      show: true,
+    },
+    {
       name: 'Profile',
       href: '/profile',
       icon: UserCircle,
@@ -124,9 +158,7 @@ const SidebarNav: React.FC<SidebarNavProps> = ({ className }) => {
       <div className="flex items-center justify-between p-4 h-16">
         {!collapsed && (
           <div className="flex items-center gap-2">
-            <div className="w-8 h-8 rounded-md bg-primary flex items-center justify-center text-primary-foreground font-bold">
-              T
-            </div>
+            <img src="/logo.png" alt="Teamz" className="w-8 h-8" />
             <h1 className="font-bold text-lg">Teamz</h1>
           </div>
         )}
@@ -170,6 +202,11 @@ const SidebarNav: React.FC<SidebarNavProps> = ({ className }) => {
               </div>
             </div>
           </div>
+          
+          <div className="mt-3 flex items-center gap-2">
+            <Clock className="h-4 w-4 text-muted-foreground" />
+            <span className="text-sm text-muted-foreground">{formatTime(currentTime)}</span>
+          </div>
         </div>
       )}
 
@@ -198,12 +235,24 @@ const SidebarNav: React.FC<SidebarNavProps> = ({ className }) => {
       </nav>
 
       <div className="p-4">
+        <button 
+          onClick={handleLogout}
+          className={cn(
+            "flex items-center gap-3 rounded-md px-3 py-2 text-sm transition-colors",
+            "text-sidebar-foreground hover:bg-sidebar-accent/50 hover:text-sidebar-accent-foreground w-full",
+            collapsed && "justify-center"
+          )}
+        >
+          <LogOut className="h-5 w-5" />
+          {!collapsed && <span>Logout</span>}
+        </button>
+        
         <a 
           href="https://github.com/cubiz-app/issues/new" 
           target="_blank" 
           rel="noopener noreferrer"
           className={cn(
-            "flex items-center gap-3 rounded-md px-3 py-2 text-sm transition-colors",
+            "flex items-center gap-3 rounded-md px-3 py-2 text-sm transition-colors mt-2",
             "text-sidebar-foreground hover:bg-sidebar-accent/50 hover:text-sidebar-accent-foreground",
             collapsed && "justify-center"
           )}

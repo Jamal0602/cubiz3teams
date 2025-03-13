@@ -265,7 +265,7 @@ export type Database = {
           id: string
           joined_at?: string
           location?: string | null
-          rank_points?: number
+          rank_points: number
           role?: Database["public"]["Enums"]["user_role"]
           skills?: string[] | null
           upi_id?: string | null
