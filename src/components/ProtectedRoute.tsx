@@ -38,6 +38,7 @@ const ProtectedRoute = ({
     if (!loading && !isChecking) {
       // Not authenticated, redirect to login
       if (!isAuthenticated) {
+        console.log('User not authenticated, redirecting to login');
         toast.error('You need to be logged in to access this page');
         navigate('/login');
         return;
@@ -45,6 +46,7 @@ const ProtectedRoute = ({
       
       // Check if user is verified when required
       if (verificationRequired && profile && !profile.verified && profile.role !== 'admin') {
+        console.log('User not verified, redirecting to verification pending');
         toast.error('Your account is pending verification');
         navigate('/verification-pending');
         return;
@@ -53,6 +55,7 @@ const ProtectedRoute = ({
       // Check for required role
       if (requiredRole && profile && profile.role !== requiredRole) {
         if (profile.role !== 'admin') { // Admins can access everything
+          console.log(`User role ${profile.role} does not match required role ${requiredRole}`);
           toast.error(`Only ${requiredRole}s can access this page`);
           navigate('/dashboard');
           return;
@@ -60,6 +63,7 @@ const ProtectedRoute = ({
       }
 
       // If we reach here, user is authorized
+      console.log('User authorized');
       setIsAuthorized(true);
     }
   }, [isAuthenticated, loading, navigate, profile, requiredRole, isChecking, verificationRequired]);

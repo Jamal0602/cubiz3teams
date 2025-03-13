@@ -25,7 +25,9 @@ const AppLayout: React.FC<AppLayoutProps> = ({
   useEffect(() => {
     // Try to refresh the profile to ensure we have the latest data
     const initProfile = async () => {
+      console.log('AppLayout: Initializing profile, authenticated:', isAuthenticated);
       if (isAuthenticated && !profile) {
+        console.log('AppLayout: Refreshing profile');
         await refreshProfile();
       }
       setIsChecking(false);
@@ -36,6 +38,7 @@ const AppLayout: React.FC<AppLayoutProps> = ({
 
   // Show loading state while auth is being checked or profile is being fetched
   if (loading || isChecking) {
+    console.log('AppLayout: Loading state', { loading, isChecking });
     return (
       <div className="flex items-center justify-center h-screen">
         <Loader size="lg" text="Loading your workspace..." />
@@ -45,12 +48,14 @@ const AppLayout: React.FC<AppLayoutProps> = ({
 
   // Redirect to login if not authenticated
   if (!isAuthenticated) {
+    console.log('AppLayout: Not authenticated, redirecting to login');
     toast.error('You need to be logged in to access this page');
     return <Navigate to="/login" replace />;
   }
 
   // Check if user is verified (except for admins) when verification is required
   if (verificationRequired && profile && !profile.verified && profile.role !== 'admin') {
+    console.log('AppLayout: User not verified, redirecting to verification pending');
     toast.error('Your account is pending verification');
     return <Navigate to="/verification-pending" replace />;
   }
@@ -61,6 +66,7 @@ const AppLayout: React.FC<AppLayoutProps> = ({
     const hasRequiredRole = requiredRoles.includes(profile.role) || profile.role === 'admin';
     
     if (!hasRequiredRole) {
+      console.log('AppLayout: User does not have required role');
       toast.error('You do not have permission to access this page');
       return <Navigate to="/unauthorized" replace />;
     }

@@ -2,6 +2,7 @@
 import { useEffect } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { supabase } from '@/integrations/supabase/client';
+import { Loader } from '@/components/ui/loader';
 
 const AuthCallback = () => {
   const navigate = useNavigate();
@@ -9,12 +10,21 @@ const AuthCallback = () => {
   useEffect(() => {
     const handleAuthCallback = async () => {
       try {
-        const { error } = await supabase.auth.getSession();
+        // Get current session
+        const { data, error } = await supabase.auth.getSession();
         
         if (error) {
+          console.error('Session error:', error);
           throw error;
         }
         
+        if (!data.session) {
+          console.error('No session found');
+          navigate('/login');
+          return;
+        }
+        
+        console.log('Authentication successful, redirecting to dashboard');
         // Redirect to dashboard after successful authentication
         navigate('/dashboard');
       } catch (error) {
@@ -28,10 +38,7 @@ const AuthCallback = () => {
 
   return (
     <div className="min-h-screen flex items-center justify-center">
-      <div className="text-center">
-        <h2 className="text-2xl font-bold mb-4">Processing authentication...</h2>
-        <div className="animate-pulse text-primary">Please wait while we sign you in</div>
-      </div>
+      <Loader size="md" text="Logging you in..." />
     </div>
   );
 };
