@@ -7,6 +7,7 @@ import SidebarNav from './SidebarNav';
 import { cn } from '@/lib/utils';
 import { toast } from 'sonner';
 import { Loader } from '@/components/ui/loader';
+import { Skeleton } from '@/components/ui/skeleton';
 
 interface AppLayoutProps {
   children?: React.ReactNode;
@@ -21,20 +22,51 @@ const AppLayout: React.FC<AppLayoutProps> = ({
 }) => {
   const { user, profile, isAuthenticated, loading, refreshProfile } = useAuth();
   const [isChecking, setIsChecking] = useState<boolean>(true);
+  const [retries, setRetries] = useState(0);
+  const [isOnline, setIsOnline] = useState(navigator.onLine);
+
+  // Monitor online/offline status
+  useEffect(() => {
+    const handleOnline = () => {
+      setIsOnline(true);
+      toast.success('You are back online!');
+    };
+    
+    const handleOffline = () => {
+      setIsOnline(false);
+      toast.warning('You are now offline. Some features may be limited.');
+    };
+    
+    window.addEventListener('online', handleOnline);
+    window.addEventListener('offline', handleOffline);
+    
+    return () => {
+      window.removeEventListener('online', handleOnline);
+      window.removeEventListener('offline', handleOffline);
+    };
+  }, []);
 
   useEffect(() => {
     // Try to refresh the profile to ensure we have the latest data
     const initProfile = async () => {
-      console.log('AppLayout: Initializing profile, authenticated:', isAuthenticated);
-      if (isAuthenticated && !profile) {
-        console.log('AppLayout: Refreshing profile');
-        await refreshProfile();
+      try {
+        console.log('AppLayout: Initializing profile, authenticated:', isAuthenticated);
+        if (isAuthenticated && !profile && retries < 3) {
+          console.log(`AppLayout: Refreshing profile (attempt ${retries + 1})`);
+          await refreshProfile();
+          setRetries(prev => prev + 1);
+        }
+        setIsChecking(false);
+      } catch (error) {
+        console.error('AppLayout: Error refreshing profile:', error);
+        setIsChecking(false);
       }
-      setIsChecking(false);
     };
 
-    initProfile();
-  }, [isAuthenticated, profile, refreshProfile]);
+    if (isChecking) {
+      initProfile();
+    }
+  }, [isAuthenticated, profile, refreshProfile, retries, isChecking]);
 
   // Show loading state while auth is being checked or profile is being fetched
   if (loading || isChecking) {
@@ -72,11 +104,34 @@ const AppLayout: React.FC<AppLayoutProps> = ({
     }
   }
 
+  // If we're still waiting for profile but user is authenticated
+  if (!profile) {
+    return (
+      <div className="flex flex-col items-center justify-center min-h-screen">
+        <div className="w-full max-w-4xl p-8">
+          <div className="flex items-center gap-4 mb-8">
+            <Skeleton className="h-10 w-10 rounded-full" />
+            <Skeleton className="h-6 w-48" />
+          </div>
+          <div className="grid grid-cols-1 md:grid-cols-3 gap-8">
+            <Skeleton className="h-64" />
+            <Skeleton className="h-64 md:col-span-2" />
+          </div>
+        </div>
+      </div>
+    );
+  }
+
   return (
     <div className="flex min-h-screen">
       <SidebarNav />
       <div className="flex-1 flex flex-col min-h-screen overflow-hidden">
         <TopNav />
+        {!isOnline && (
+          <div className="bg-yellow-100 dark:bg-yellow-900/40 px-4 py-2 text-sm text-yellow-800 dark:text-yellow-200">
+            You are currently offline. Some features may be limited.
+          </div>
+        )}
         <main className={cn(
           "flex-1 overflow-auto",
           "transition-all duration-300 ease-in-out"

@@ -4,6 +4,7 @@ import { useNavigate } from 'react-router-dom';
 import { useAuth } from '@/contexts/AuthContext';
 import { toast } from 'sonner';
 import { Loader } from '@/components/ui/loader';
+import { Skeleton } from '@/components/ui/skeleton';
 
 interface ProtectedRouteProps {
   children: ReactNode;
@@ -20,18 +21,29 @@ const ProtectedRoute = ({
   const navigate = useNavigate();
   const [isAuthorized, setIsAuthorized] = useState<boolean>(false);
   const [isChecking, setIsChecking] = useState<boolean>(true);
+  const [retries, setRetries] = useState(0);
 
   useEffect(() => {
     // Try to refresh the profile first to ensure we have the latest data
     const initProfile = async () => {
-      if (isAuthenticated && !profile) {
-        await refreshProfile();
+      try {
+        console.log('ProtectedRoute: Initializing profile check, authenticated:', isAuthenticated);
+        if (isAuthenticated && !profile && retries < 3) {
+          console.log(`ProtectedRoute: Refreshing profile (attempt ${retries + 1})`);
+          await refreshProfile();
+          setRetries(prev => prev + 1);
+        }
+        setIsChecking(false);
+      } catch (error) {
+        console.error('Error initializing profile:', error);
+        setIsChecking(false);
       }
-      setIsChecking(false);
     };
 
-    initProfile();
-  }, [isAuthenticated, profile, refreshProfile]);
+    if (isChecking) {
+      initProfile();
+    }
+  }, [isAuthenticated, profile, refreshProfile, isChecking, retries]);
 
   useEffect(() => {
     // Check once the loading is complete and profile check is done
@@ -72,7 +84,23 @@ const ProtectedRoute = ({
   if (loading || isChecking) {
     return (
       <div className="flex items-center justify-center min-h-screen">
-        <Loader size="md" text="Loading..." />
+        <Loader size="md" text="Verifying access..." />
+      </div>
+    );
+  }
+
+  // If we're still waiting for profile but user is authenticated
+  if (isAuthenticated && !profile && !isAuthorized) {
+    return (
+      <div className="flex flex-col items-center justify-center min-h-screen gap-6">
+        <div className="w-full max-w-md space-y-4">
+          <Skeleton className="h-12 w-full" />
+          <Skeleton className="h-64 w-full" />
+          <div className="space-y-2">
+            <Skeleton className="h-4 w-full" />
+            <Skeleton className="h-4 w-3/4" />
+          </div>
+        </div>
       </div>
     );
   }

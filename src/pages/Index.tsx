@@ -2,11 +2,30 @@
 import { Button } from "@/components/ui/button";
 import { useNavigate } from "react-router-dom";
 import { useAuth } from "@/contexts/AuthContext";
-import { LogOut } from "lucide-react";
+import { LogOut, Clock } from "lucide-react";
+import { useEffect, useState } from "react";
 
 const Index = () => {
   const navigate = useNavigate();
   const { isAuthenticated, logout } = useAuth();
+  const [currentTime, setCurrentTime] = useState('');
+
+  useEffect(() => {
+    // Update time every minute
+    const updateTime = () => {
+      const now = new Date();
+      setCurrentTime(now.toLocaleTimeString('en-US', { 
+        hour: '2-digit', 
+        minute: '2-digit',
+        hour12: false 
+      }));
+    };
+    
+    updateTime();
+    const interval = setInterval(updateTime, 60000);
+    
+    return () => clearInterval(interval);
+  }, []);
 
   const handleLogout = async () => {
     await logout();
@@ -20,12 +39,22 @@ const Index = () => {
           <img src="/logo.png" alt="Teamz" className="h-12 w-12" />
           <h1 className="text-3xl font-bold">Teamz</h1>
         </div>
-        {isAuthenticated && (
-          <Button variant="outline" onClick={handleLogout} className="flex items-center gap-2">
-            <LogOut className="h-4 w-4" />
-            Logout
-          </Button>
-        )}
+        <div className="flex items-center gap-4">
+          <div className="flex items-center gap-2 text-muted-foreground">
+            <Clock className="h-4 w-4" />
+            <span>{currentTime}</span>
+          </div>
+          {isAuthenticated ? (
+            <Button variant="outline" onClick={handleLogout} className="flex items-center gap-2">
+              <LogOut className="h-4 w-4" />
+              Logout
+            </Button>
+          ) : (
+            <Button variant="outline" onClick={() => navigate('/login')}>
+              Login
+            </Button>
+          )}
+        </div>
       </div>
 
       <div className="container mx-auto px-4 py-16 sm:py-24 flex flex-col items-center text-center">
