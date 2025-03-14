@@ -1,4 +1,3 @@
-
 "use client"
 
 import React, { useEffect, useState } from "react"
@@ -15,18 +14,30 @@ export const Loader = ({ size = "md", text, className }: LoaderProps) => {
   
   useEffect(() => {
     // Check if the script is already loaded
-    if (!document.querySelector('script[src*="dotlottie-player"]')) {
-      // Create script element for dotlottie player if not already loaded
-      const script = document.createElement('script');
-      script.src = "https://unpkg.com/@dotlottie/player-component@2.7.12/dist/dotlottie-player.mjs";
-      script.type = "module";
-      script.onload = () => setIsScriptLoaded(true);
-      document.head.appendChild(script);
-    } else {
+    if (document.querySelector('script[src*="dotlottie-player"]')) {
       setIsScriptLoaded(true);
+      return;
     }
+    
+    // Create script element for dotlottie player
+    const script = document.createElement('script');
+    script.src = "https://unpkg.com/@dotlottie/player-component@2.7.12/dist/dotlottie-player.mjs";
+    script.type = "module";
+    script.setAttribute('data-loading', 'true');
+    
+    script.onload = () => {
+      script.removeAttribute('data-loading');
+      setIsScriptLoaded(true);
+    };
+    
+    script.onerror = (error) => {
+      console.error('Error loading dotlottie-player:', error);
+      // Keep isScriptLoaded as false to show fallback
+    };
+    
+    document.head.appendChild(script);
 
-    // Make sure we clean up script if component unmounts during loading
+    // Clean up script if component unmounts during loading
     return () => {
       const pendingScript = document.querySelector('script[src*="dotlottie-player"][data-loading="true"]');
       if (pendingScript) {
@@ -59,11 +70,15 @@ export const Loader = ({ size = "md", text, className }: LoaderProps) => {
           />
         ) : (
           <div className="animate-pulse rounded-full bg-muted h-full w-full flex items-center justify-center">
-            <span className="text-sm text-muted-foreground">Loading...</span>
+            <div className="animate-spin h-12 w-12 border-t-2 border-b-2 border-primary rounded-full"></div>
           </div>
         )}
       </div>
-      {text && <p className="text-muted-foreground text-sm">{text}</p>}
+      {text && (
+        <p className="text-muted-foreground text-sm text-center">
+          {text}
+        </p>
+      )}
     </div>
   )
 }

@@ -22,7 +22,7 @@ const AuthCallback = () => {
           console.error('Session error:', error);
           setError('Failed to get session');
           toast.error('Authentication failed. Please try again.');
-          setTimeout(() => navigate('/login'), 1500);
+          navigate('/login');
           return;
         }
         
@@ -30,23 +30,20 @@ const AuthCallback = () => {
           console.error('No session found');
           setError('No session found');
           toast.error('No session found. Please log in again.');
-          setTimeout(() => navigate('/login'), 1500);
+          navigate('/login');
           return;
         }
         
         console.log('Authentication successful, redirecting to dashboard');
         toast.success('Successfully logged in!');
         
-        // Reduced delay to speed up verification process
-        setTimeout(() => {
-          // Redirect to dashboard after successful authentication
-          navigate('/dashboard');
-        }, 500);
+        // Immediate redirect - no delay
+        navigate('/dashboard');
       } catch (error) {
         console.error('Error during auth callback:', error);
         setError('Authentication failed');
         toast.error('An error occurred during authentication');
-        setTimeout(() => navigate('/login'), 1500);
+        navigate('/login');
       } finally {
         setIsProcessing(false);
       }

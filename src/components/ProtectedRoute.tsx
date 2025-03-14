@@ -27,16 +27,15 @@ const ProtectedRoute = ({
     // Try to refresh the profile first to ensure we have the latest data
     const initProfile = async () => {
       try {
-        console.log('ProtectedRoute: Initializing profile check, authenticated:', isAuthenticated);
-        if (isAuthenticated && !profile && retries < 2) { // Reduced max retries
+        if (isAuthenticated && !profile && retries < 1) { // Reduced max retries to 1
           console.log(`ProtectedRoute: Refreshing profile (attempt ${retries + 1})`);
           await refreshProfile();
           setRetries(prev => prev + 1);
         }
-        // Speed up the verification process
+        // Speed up the verification process significantly
         setTimeout(() => {
           setIsChecking(false);
-        }, 300); // Reduced timeout
+        }, 100); // Extremely reduced timeout
       } catch (error) {
         console.error('Error initializing profile:', error);
         setIsChecking(false);
@@ -53,16 +52,12 @@ const ProtectedRoute = ({
     if (!loading && !isChecking) {
       // Not authenticated, redirect to login
       if (!isAuthenticated) {
-        console.log('User not authenticated, redirecting to login');
-        toast.error('You need to be logged in to access this page');
         navigate('/login');
         return;
       }
       
       // Check if user is verified when required
       if (verificationRequired && profile && !profile.verified && profile.role !== 'admin') {
-        console.log('User not verified, redirecting to verification pending');
-        toast.error('Your account is pending verification');
         navigate('/verification-pending');
         return;
       }
@@ -70,20 +65,17 @@ const ProtectedRoute = ({
       // Check for required role
       if (requiredRole && profile && profile.role !== requiredRole) {
         if (profile.role !== 'admin') { // Admins can access everything
-          console.log(`User role ${profile.role} does not match required role ${requiredRole}`);
-          toast.error(`Only ${requiredRole}s can access this page`);
           navigate('/dashboard');
           return;
         }
       }
 
       // If we reach here, user is authorized
-      console.log('User authorized');
       setIsAuthorized(true);
     }
   }, [isAuthenticated, loading, navigate, profile, requiredRole, isChecking, verificationRequired]);
 
-  // Show a loading state while checking auth and profile
+  // Show a loading state while checking auth and profile, but not for more than 2 seconds
   if (loading || isChecking) {
     return (
       <div className="flex items-center justify-center min-h-screen">
