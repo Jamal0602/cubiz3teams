@@ -26,14 +26,14 @@ export const TeamzLogo: React.FC<TeamzLogoProps> = ({
     <div className={cn('relative flex items-center', className)}>
       {variant === 'full' ? (
         <img 
-          src="/lovable-uploads/d0f2a458-9795-4655-a308-3b48b12d68e2.png"
+          src="/lovable-uploads/aa48fa2d-6c13-4c91-801e-847599f08aa7.png"
           alt="Teamz Workspace" 
           className={cn(sizeClasses[size], 'object-contain')}
         />
       ) : (
         <div className={cn(sizeClasses[size], 'aspect-square relative')}>
           <img 
-            src="/lovable-uploads/d0f2a458-9795-4655-a308-3b48b12d68e2.png"
+            src="/lovable-uploads/aa48fa2d-6c13-4c91-801e-847599f08aa7.png"
             alt="Teamz" 
             className="h-full object-contain object-center"
           />

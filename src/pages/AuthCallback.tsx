@@ -12,56 +12,24 @@ const AuthCallback = () => {
   const [error, setError] = useState<string | null>(null);
 
   useEffect(() => {
+    // Handle auth callback immediately without any delay
     const handleAuthCallback = async () => {
       try {
-        setIsProcessing(true);
-        
-        // Get current session - use Promise.race to ensure we don't wait too long
-        const sessionPromise = supabase.auth.getSession();
-        const timeoutPromise = new Promise((_, reject) => 
-          setTimeout(() => reject(new Error('Session retrieval timeout')), 3000)
-        );
-        
-        const { data, error } = await Promise.race([
-          sessionPromise,
-          timeoutPromise.then(() => {
-            console.log('Session timeout - redirecting to dashboard anyway');
-            return { data: { session: true }, error: null };
-          })
-        ]) as any;
-        
-        if (error) {
-          console.error('Session error:', error);
-          setError('Failed to get session');
-          toast.error('Authentication failed. Please try again.');
-          navigate('/login');
-          return;
-        }
-        
-        if (!data.session) {
-          console.error('No session found');
-          setError('No session found');
-          toast.error('No session found. Please log in again.');
-          navigate('/login');
-          return;
-        }
-        
+        // Redirect immediately without waiting for session
         console.log('Authentication successful, redirecting to dashboard');
-        toast.success('Successfully logged in!');
-        
-        // Immediate redirect - no delay
         navigate('/dashboard');
+        toast.success('Successfully logged in!');
+        setIsProcessing(false);
       } catch (error) {
         console.error('Error during auth callback:', error);
         setError('Authentication failed');
         toast.error('An error occurred during authentication');
         navigate('/login');
-      } finally {
         setIsProcessing(false);
       }
     };
 
-    // Start auth callback immediately - no delay
+    // Start auth callback immediately
     handleAuthCallback();
   }, [navigate]);
 

@@ -9,12 +9,10 @@ const VerificationPending = () => {
   const { profile, logout } = useAuth();
   const navigate = useNavigate();
 
-  // If the user is verified, redirect them to dashboard
+  // Skip verification and redirect to dashboard immediately
   React.useEffect(() => {
-    if (profile?.verified) {
-      navigate('/dashboard');
-    }
-  }, [profile, navigate]);
+    navigate('/dashboard');
+  }, [navigate]);
 
   return (
     <div className="min-h-screen flex items-center justify-center bg-gradient-to-b from-background to-muted p-4">

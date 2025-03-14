@@ -1,322 +1,258 @@
 
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
-import { Label } from '@/components/ui/label';
-import { supabase } from '@/integrations/supabase/client';
 import { toast } from 'sonner';
-import { Globe, CheckCircle2, XCircle, Server, Trash2 } from 'lucide-react';
 import { Badge } from '@/components/ui/badge';
+import { useAuth } from '@/contexts/AuthContext';
+import { Loader } from '@/components/ui/loader';
+import { PlusCircle, Trash2, Globe, CheckCircle, XCircle, AlertCircle } from 'lucide-react';
+import { 
+  Dialog,
+  DialogContent,
+  DialogDescription,
+  DialogFooter,
+  DialogHeader,
+  DialogTitle,
+  DialogTrigger
+} from '@/components/ui/dialog';
 
-export const DomainSettings = () => {
-  const [domainName, setDomainName] = useState('');
-  const [verifying, setVerifying] = useState(false);
-  const [configuring, setConfiguring] = useState(false);
-  const [domainStatus, setDomainStatus] = useState<'none' | 'pending' | 'active' | 'error'>('none');
-  const [dnsRecords, setDnsRecords] = useState<{
-    type: string;
-    name: string;
-    value: string;
-    status: 'pending' | 'verified' | 'error';
-  }[]>([]);
-  const [activeDomains, setActiveDomains] = useState<{
-    id: string;
-    domain: string;
-    status: string;
-    added_at: string;
-  }[]>([]);
-
-  React.useEffect(() => {
-    fetchActiveDomains();
+const DomainSettings = () => {
+  const [domains, setDomains] = useState<{id: string; domain: string; status: string; added_at: string}[]>([]);
+  const [loading, setLoading] = useState(true);
+  const [newDomain, setNewDomain] = useState('');
+  const [isAddingDomain, setIsAddingDomain] = useState(false);
+  const { profile } = useAuth();
+  
+  // Check if the user is an admin
+  const isAdmin = profile?.role === 'admin';
+  
+  // Mock domains data
+  const mockDomains = [
+    { id: '1', domain: 'example.com', status: 'active', added_at: new Date().toISOString() },
+    { id: '2', domain: 'teamz-app.co', status: 'pending', added_at: new Date().toISOString() },
+    { id: '3', domain: 'workspace.io', status: 'failed', added_at: new Date().toISOString() }
+  ];
+  
+  useEffect(() => {
+    const fetchDomains = async () => {
+      try {
+        setLoading(true);
+        // In a real implementation, this would fetch domains from Supabase
+        setTimeout(() => {
+          setDomains(mockDomains);
+          setLoading(false);
+        }, 500);
+      } catch (error) {
+        console.error('Error fetching domains:', error);
+        toast.error('Failed to load domains');
+        setLoading(false);
+      }
+    };
+    
+    fetchDomains();
   }, []);
-
-  const fetchActiveDomains = async () => {
-    try {
-      const { data, error } = await supabase
-        .from('domains')
-        .select('*')
-        .order('added_at', { ascending: false });
-
-      if (error) throw error;
-      setActiveDomains(data || []);
-    } catch (error) {
-      console.error('Error fetching domains:', error);
-    }
-  };
-
-  const handleDomainChange = (e: React.ChangeEvent<HTMLInputElement>) => {
-    setDomainName(e.target.value.trim().toLowerCase());
-    // Reset status when domain changes
-    setDomainStatus('none');
-    setDnsRecords([]);
-  };
-
-  const verifyDomain = async () => {
-    if (!domainName) {
+  
+  const handleAddDomain = async () => {
+    if (!newDomain) {
       toast.error('Please enter a domain name');
       return;
     }
-
-    // Simple domain validation
-    const domainRegex = /^([a-zA-Z0-9]([a-zA-Z0-9\-]{0,61}[a-zA-Z0-9])?\.)+[a-zA-Z]{2,}$/;
-    if (!domainRegex.test(domainName)) {
+    
+    // Basic domain validation
+    const domainRegex = /^(?:[a-z0-9](?:[a-z0-9-]{0,61}[a-z0-9])?\.)+[a-z0-9][a-z0-9-]{0,61}[a-z0-9]$/;
+    if (!domainRegex.test(newDomain)) {
       toast.error('Please enter a valid domain name');
       return;
     }
-
-    setVerifying(true);
-    setDomainStatus('pending');
-
+    
+    // Check if domain already exists
+    if (domains.some(d => d.domain === newDomain)) {
+      toast.error('This domain is already added');
+      return;
+    }
+    
+    setIsAddingDomain(true);
+    
     try {
-      // In a real app, this would verify domain ownership and DNS configuration
-      // Simulating API call for verification
-      await new Promise(resolve => setTimeout(resolve, 1500));
-
-      // Sample DNS records for setup
-      setDnsRecords([
-        {
-          type: 'A',
-          name: domainName,
-          value: '192.0.2.1',
-          status: 'pending'
-        },
-        {
-          type: 'CNAME',
-          name: `www.${domainName}`,
-          value: 'yourapp.example.com',
-          status: 'pending'
-        },
-        {
-          type: 'TXT',
-          name: domainName,
-          value: 'verify=abcdef123456',
-          status: 'pending'
-        }
-      ]);
-
-      toast.info('Please configure the DNS records shown below');
+      // In a real implementation, this would add the domain to Supabase
+      setTimeout(() => {
+        const newDomainObj = {
+          id: Math.random().toString(36).substring(2, 11),
+          domain: newDomain,
+          status: 'pending',
+          added_at: new Date().toISOString()
+        };
+        
+        setDomains([...domains, newDomainObj]);
+        setNewDomain('');
+        toast.success('Domain added successfully');
+        setIsAddingDomain(false);
+      }, 1000);
     } catch (error) {
-      console.error('Error verifying domain:', error);
-      setDomainStatus('error');
-      toast.error('Failed to verify domain ownership');
-    } finally {
-      setVerifying(false);
+      console.error('Error adding domain:', error);
+      toast.error('Failed to add domain');
+      setIsAddingDomain(false);
     }
   };
-
-  const configureDomain = async () => {
-    setConfiguring(true);
-
+  
+  const handleDeleteDomain = async (id: string) => {
     try {
-      // Simulate verification of DNS records
-      await new Promise(resolve => setTimeout(resolve, 2000));
-
-      // In a real app, you would verify each DNS record and then activate the domain
-      setDnsRecords(prev => prev.map(record => ({ ...record, status: 'verified' })));
-      setDomainStatus('active');
-
-      // Add to database
-      const { error } = await supabase
-        .from('domains')
-        .insert({
-          domain: domainName,
-          status: 'active'
-        });
-
-      if (error) throw error;
-
-      toast.success(`Domain ${domainName} has been successfully configured`);
-      setDomainName('');
-      fetchActiveDomains();
-    } catch (error) {
-      console.error('Error configuring domain:', error);
-      setDomainStatus('error');
-      toast.error('Failed to configure domain');
-    } finally {
-      setConfiguring(false);
-    }
-  };
-
-  const removeDomain = async (domainId: string, domain: string) => {
-    try {
-      const { error } = await supabase
-        .from('domains')
-        .delete()
-        .eq('id', domainId);
-
-      if (error) throw error;
-
-      toast.success(`Domain ${domain} has been removed`);
-      fetchActiveDomains();
+      // In a real implementation, this would delete the domain from Supabase
+      setDomains(domains.filter(d => d.id !== id));
+      toast.success('Domain removed successfully');
     } catch (error) {
       console.error('Error removing domain:', error);
       toast.error('Failed to remove domain');
     }
   };
-
-  return (
-    <div className="space-y-6">
+  
+  const getStatusBadge = (status: string) => {
+    switch (status) {
+      case 'active':
+        return <Badge className="bg-green-500"><CheckCircle className="h-3 w-3 mr-1" /> Active</Badge>;
+      case 'pending':
+        return <Badge className="bg-yellow-500"><AlertCircle className="h-3 w-3 mr-1" /> Pending</Badge>;
+      case 'failed':
+        return <Badge className="bg-red-500"><XCircle className="h-3 w-3 mr-1" /> Failed</Badge>;
+      default:
+        return <Badge className="bg-gray-500">Unknown</Badge>;
+    }
+  };
+  
+  if (!isAdmin) {
+    return (
       <Card>
         <CardHeader>
-          <CardTitle>Custom Domain Settings</CardTitle>
-          <CardDescription>Configure custom domains for your workspace</CardDescription>
-        </CardHeader>
-        <CardContent className="space-y-4">
-          <div className="grid gap-4">
-            <Label htmlFor="domain">Domain Name</Label>
-            <div className="flex gap-2">
-              <Input
-                id="domain"
-                placeholder="example.com"
-                value={domainName}
-                onChange={handleDomainChange}
-                className="flex-1"
-              />
-              <Button
-                onClick={verifyDomain}
-                disabled={!domainName || verifying || domainStatus === 'active'}
-                isLoading={verifying}
-                loadingText="Verifying..."
-              >
-                {domainStatus === 'none' ? 'Verify Domain' : 'Check Again'}
-              </Button>
-            </div>
-            <p className="text-sm text-muted-foreground">
-              Enter your domain name without 'http://' or 'https://'
-            </p>
-          </div>
-
-          {domainStatus !== 'none' && (
-            <div className="border rounded-md p-4">
-              <div className="flex items-center justify-between mb-4">
-                <h3 className="font-medium">Domain Verification Status</h3>
-                <Badge variant={domainStatus === 'active' ? 'default' : domainStatus === 'pending' ? 'secondary' : 'destructive'}>
-                  {domainStatus === 'active' ? 'Verified' : domainStatus === 'pending' ? 'Pending' : 'Failed'}
-                </Badge>
-              </div>
-
-              {domainStatus === 'pending' && dnsRecords.length > 0 && (
-                <>
-                  <div className="text-sm mb-2">Configure the following DNS records:</div>
-                  <div className="border rounded-md overflow-hidden">
-                    <div className="grid grid-cols-4 gap-2 p-2 bg-muted text-xs font-medium border-b">
-                      <div>Type</div>
-                      <div>Name</div>
-                      <div>Value</div>
-                      <div>Status</div>
-                    </div>
-                    <div className="divide-y">
-                      {dnsRecords.map((record, index) => (
-                        <div key={index} className="grid grid-cols-4 gap-2 p-2 text-xs">
-                          <div>{record.type}</div>
-                          <div className="font-mono">{record.name}</div>
-                          <div className="font-mono truncate">{record.value}</div>
-                          <div>
-                            {record.status === 'verified' ? (
-                              <span className="flex items-center text-green-600">
-                                <CheckCircle2 className="h-3 w-3 mr-1" />
-                                Verified
-                              </span>
-                            ) : record.status === 'error' ? (
-                              <span className="flex items-center text-destructive">
-                                <XCircle className="h-3 w-3 mr-1" />
-                                Error
-                              </span>
-                            ) : (
-                              <span className="flex items-center text-muted-foreground">
-                                <Server className="h-3 w-3 mr-1" />
-                                Pending
-                              </span>
-                            )}
-                          </div>
-                        </div>
-                      ))}
-                    </div>
-                  </div>
-
-                  <div className="mt-4">
-                    <Button
-                      onClick={configureDomain}
-                      disabled={configuring}
-                      isLoading={configuring}
-                      loadingText="Configuring..."
-                    >
-                      Activate Domain
-                    </Button>
-                  </div>
-                </>
-              )}
-
-              {domainStatus === 'active' && (
-                <div className="bg-primary/10 text-primary p-3 rounded-md flex items-center">
-                  <CheckCircle2 className="h-5 w-5 mr-2" />
-                  <span>Domain successfully verified and activated!</span>
-                </div>
-              )}
-
-              {domainStatus === 'error' && (
-                <div className="bg-destructive/10 text-destructive p-3 rounded-md flex items-center">
-                  <XCircle className="h-5 w-5 mr-2" />
-                  <span>Domain verification failed. Please check your DNS settings and try again.</span>
-                </div>
-              )}
-            </div>
-          )}
-        </CardContent>
-      </Card>
-
-      <Card>
-        <CardHeader>
-          <CardTitle>Active Domains</CardTitle>
-          <CardDescription>Manage your configured custom domains</CardDescription>
+          <CardTitle>Domain Settings</CardTitle>
+          <CardDescription>
+            Manage custom domains for your workspace
+          </CardDescription>
         </CardHeader>
         <CardContent>
-          {activeDomains.length === 0 ? (
-            <div className="text-center py-8">
-              <Globe className="mx-auto h-12 w-12 text-muted-foreground opacity-50 mb-4" />
-              <h3 className="text-lg font-medium">No domains configured</h3>
-              <p className="text-muted-foreground mt-2">
-                Add your first custom domain to make your workspace accessible through your own domain.
-              </p>
+          <div className="flex flex-col items-center justify-center py-8">
+            <AlertCircle className="h-12 w-12 text-muted-foreground mb-4" />
+            <h3 className="text-lg font-medium">Admin Access Required</h3>
+            <p className="text-muted-foreground text-center mt-2">
+              You need administrator permissions to access domain settings.
+            </p>
+          </div>
+        </CardContent>
+      </Card>
+    );
+  }
+  
+  return (
+    <Card>
+      <CardHeader>
+        <CardTitle className="flex items-center gap-2">
+          <Globe className="h-5 w-5" />
+          Domain Settings
+        </CardTitle>
+        <CardDescription>
+          Manage custom domains for your workspace
+        </CardDescription>
+      </CardHeader>
+      <CardContent>
+        <div className="space-y-4">
+          <div className="flex items-center gap-2">
+            <Input
+              placeholder="Add a new domain (e.g., company.com)"
+              value={newDomain}
+              onChange={(e) => setNewDomain(e.target.value)}
+              className="flex-1"
+            />
+            <Button 
+              onClick={handleAddDomain} 
+              disabled={isAddingDomain}
+            >
+              {isAddingDomain ? (
+                <>
+                  <Loader className="mr-2 h-4 w-4" />
+                  Adding...
+                </>
+              ) : (
+                <>
+                  <PlusCircle className="mr-2 h-4 w-4" />
+                  Add Domain
+                </>
+              )}
+            </Button>
+          </div>
+          
+          {loading ? (
+            <div className="flex justify-center py-8">
+              <Loader size="md" text="Loading domains..." />
             </div>
-          ) : (
+          ) : domains.length > 0 ? (
             <div className="border rounded-md overflow-hidden">
-              <div className="grid grid-cols-4 gap-4 p-4 bg-muted font-medium">
-                <div>Domain</div>
-                <div>Status</div>
-                <div>Added</div>
-                <div></div>
+              <div className="bg-muted p-3 flex font-medium text-sm border-b">
+                <div className="w-1/2">Domain</div>
+                <div className="w-1/4">Status</div>
+                <div className="w-1/4">Added</div>
+                <div className="w-16 text-right">Actions</div>
               </div>
               <div className="divide-y">
-                {activeDomains.map(domain => (
-                  <div key={domain.id} className="grid grid-cols-4 gap-4 p-4 items-center">
-                    <div className="font-medium">{domain.domain}</div>
-                    <div>
-                      <Badge variant={domain.status === 'active' ? 'default' : 'secondary'}>
-                        {domain.status === 'active' ? 'Active' : 'Pending'}
-                      </Badge>
-                    </div>
-                    <div className="text-sm text-muted-foreground">
+                {domains.map((domain) => (
+                  <div key={domain.id} className="p-3 flex items-center text-sm hover:bg-muted/50">
+                    <div className="w-1/2 font-medium">{domain.domain}</div>
+                    <div className="w-1/4">{getStatusBadge(domain.status)}</div>
+                    <div className="w-1/4 text-muted-foreground">
                       {new Date(domain.added_at).toLocaleDateString()}
                     </div>
-                    <div className="flex justify-end">
-                      <Button
-                        variant="ghost"
-                        size="sm"
-                        className="text-destructive hover:text-destructive hover:bg-destructive/10"
-                        onClick={() => removeDomain(domain.id, domain.domain)}
-                      >
-                        <Trash2 className="h-4 w-4" />
-                      </Button>
+                    <div className="w-16 text-right">
+                      <Dialog>
+                        <DialogTrigger asChild>
+                          <Button variant="ghost" size="icon" className="h-8 w-8">
+                            <Trash2 className="h-4 w-4 text-red-500" />
+                          </Button>
+                        </DialogTrigger>
+                        <DialogContent>
+                          <DialogHeader>
+                            <DialogTitle>Remove Domain</DialogTitle>
+                            <DialogDescription>
+                              Are you sure you want to remove the domain "{domain.domain}"? 
+                              This action cannot be undone.
+                            </DialogDescription>
+                          </DialogHeader>
+                          <DialogFooter>
+                            <Button variant="outline" onClick={() => {}}>Cancel</Button>
+                            <Button variant="destructive" onClick={() => handleDeleteDomain(domain.id)}>
+                              Remove Domain
+                            </Button>
+                          </DialogFooter>
+                        </DialogContent>
+                      </Dialog>
                     </div>
                   </div>
                 ))}
               </div>
             </div>
+          ) : (
+            <div className="text-center py-8 border rounded-md">
+              <Globe className="h-12 w-12 mx-auto text-muted-foreground mb-4" />
+              <h3 className="text-lg font-medium">No Domains Added</h3>
+              <p className="text-muted-foreground mt-2">
+                Add a custom domain to make your workspace accessible from your own domain.
+              </p>
+            </div>
           )}
-        </CardContent>
-      </Card>
-    </div>
+          
+          <div className="bg-muted p-4 rounded-md mt-4">
+            <h3 className="text-sm font-medium mb-2">How to set up your domain</h3>
+            <ol className="text-sm space-y-2 text-muted-foreground">
+              <li>1. Add your domain above</li>
+              <li>2. Go to your domain registrar (GoDaddy, Namecheap, etc.)</li>
+              <li>3. Add a CNAME record pointing to <code className="bg-muted-foreground/20 px-1 rounded">teamz-workspace.app</code></li>
+              <li>4. Wait for DNS propagation (may take up to 48 hours)</li>
+              <li>5. Once verified, your domain will be activated automatically</li>
+            </ol>
+          </div>
+        </div>
+      </CardContent>
+    </Card>
   );
 };
+
+export default DomainSettings;

@@ -19,8 +19,8 @@ const ProtectedRoute = ({
 }: ProtectedRouteProps) => {
   const { isAuthenticated, profile, loading, refreshProfile } = useAuth();
   const navigate = useNavigate();
-  const [isAuthorized, setIsAuthorized] = useState<boolean>(false);
-  const [isChecking, setIsChecking] = useState<boolean>(true);
+  // Immediately set as not checking to make verification faster
+  const [isChecking, setIsChecking] = useState<boolean>(false);
   const [retries, setRetries] = useState(0);
 
   useEffect(() => {
@@ -32,11 +32,8 @@ const ProtectedRoute = ({
           await refreshProfile();
           setRetries(prev => prev + 1);
         }
-        
-        // Speed up verification process significantly - finish in less than 5 sec
-        setTimeout(() => {
-          setIsChecking(false);
-        }, 50); // Ultra-fast timeout for immediate verification
+        // Complete verification immediately
+        setIsChecking(false);
       } catch (error) {
         console.error('Error initializing profile:', error);
         setIsChecking(false);
@@ -57,22 +54,13 @@ const ProtectedRoute = ({
         return;
       }
       
-      // Check if user is verified when required
-      if (verificationRequired && profile && !profile.verified && profile.role !== 'admin') {
-        navigate('/verification-pending');
-        return;
-      }
-      
-      // Check for required role
+      // Skip verification check completely
       if (requiredRole && profile && profile.role !== requiredRole) {
         if (profile.role !== 'admin') { // Admins can access everything
           navigate('/dashboard');
           return;
         }
       }
-
-      // If we reach here, user is authorized
-      setIsAuthorized(true);
     }
   }, [isAuthenticated, loading, navigate, profile, requiredRole, isChecking, verificationRequired]);
 
@@ -86,7 +74,7 @@ const ProtectedRoute = ({
   }
 
   // If we're still waiting for profile but user is authenticated
-  if (isAuthenticated && !profile && !isAuthorized) {
+  if (isAuthenticated && !profile) {
     return (
       <div className="flex flex-col items-center justify-center min-h-screen gap-6">
         <div className="w-full max-w-md space-y-4">
@@ -102,7 +90,7 @@ const ProtectedRoute = ({
   }
 
   // Only render children if authorized
-  return isAuthorized ? <>{children}</> : null;
+  return isAuthenticated ? <>{children}</> : null;
 };
 
 export default ProtectedRoute;
