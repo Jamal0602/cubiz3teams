@@ -1,4 +1,3 @@
-
 import React, { useState, useEffect } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { useAuth } from '@/contexts/AuthContext';
@@ -14,8 +13,9 @@ import { Textarea } from '@/components/ui/textarea';
 import { Checkbox } from '@/components/ui/checkbox';
 import { Label } from '@/components/ui/label';
 import { toast } from 'sonner';
-import { UserCheck, UserX, AlertCircle, Users, Award, Star, Bell, Upload, CheckCircle, Briefcase } from 'lucide-react';
+import { UserCheck, UserX, AlertCircle, Users, Award, Star, Bell, Upload, CheckCircle, Briefcase, Globe } from 'lucide-react';
 import { UserProfile } from '@/contexts/AuthContext';
+import { DomainSettings } from '@/components/admin/DomainSettings';
 
 interface PendingUser extends UserProfile {
   email?: string;
@@ -49,24 +49,17 @@ const AdminDashboard = () => {
   const fetchUsers = async () => {
     setIsLoadingUsers(true);
     try {
-      // Fetch profiles 
       const { data: profiles, error } = await supabase
         .from('profiles')
         .select('*');
       
       if (error) throw error;
       
-      // Get email addresses from auth.users (this requires admin privileges)
-      // Since we can't query auth.users directly via the JavaScript API,
-      // we'll assume emails match the Cubiz ID format or leave as unknown
-      
-      // Prepare user data
       const usersWithEmail = profiles.map(profile => ({
         ...profile,
-        email: `${profile.cubiz_id.split('@')[0]}@example.com` // Placeholder email
+        email: `${profile.cubiz_id.split('@')[0]}@example.com`
       }));
 
-      // Filter users
       const pendingVerification = usersWithEmail.filter(user => !user.verified && user.role === 'employee');
       const pendingManagerPromotion = usersWithEmail.filter(user => {
         return user.verified && 
@@ -74,7 +67,6 @@ const AdminDashboard = () => {
                (user.rank_points || 0) >= 220;
       });
       
-      // Set state
       setPendingUsers(pendingVerification);
       setPendingManagers(pendingManagerPromotion);
       setAllUsers(usersWithEmail);
@@ -89,7 +81,6 @@ const AdminDashboard = () => {
 
   const verifyUser = async (userId: string) => {
     try {
-      // Update user verification status
       const { error } = await supabase
         .from('profiles')
         .update({ 
@@ -99,7 +90,6 @@ const AdminDashboard = () => {
       
       if (error) throw error;
       
-      // Add rank points in a separate query
       const { error: pointsError } = await supabase.rpc('add_rank_points', {
         user_id: userId,
         points: 30
@@ -117,7 +107,6 @@ const AdminDashboard = () => {
 
   const promoteToManager = async (userId: string) => {
     try {
-      // Update user role
       const { error } = await supabase
         .from('profiles')
         .update({ 
@@ -127,7 +116,6 @@ const AdminDashboard = () => {
       
       if (error) throw error;
       
-      // Add rank points in a separate query
       const { error: pointsError } = await supabase.rpc('add_rank_points', {
         user_id: userId,
         points: 80
@@ -157,7 +145,7 @@ const AdminDashboard = () => {
       <p className="text-muted-foreground mb-8">Manage users, teams and system settings</p>
       
       <Tabs value={activeTab} onValueChange={setActiveTab} className="space-y-8">
-        <TabsList className="grid grid-cols-2 md:grid-cols-4 lg:grid-cols-6 gap-2">
+        <TabsList className="grid grid-cols-2 md:grid-cols-4 lg:grid-cols-7 gap-2">
           <TabsTrigger value="overview">Overview</TabsTrigger>
           <TabsTrigger value="pending">
             Pending Users
@@ -172,6 +160,9 @@ const AdminDashboard = () => {
             )}
           </TabsTrigger>
           <TabsTrigger value="all-users">All Users</TabsTrigger>
+          <TabsTrigger value="domains">
+            Domains
+          </TabsTrigger>
           <TabsTrigger value="notifications">Notifications</TabsTrigger>
           <TabsTrigger value="settings">Settings</TabsTrigger>
         </TabsList>
@@ -521,6 +512,10 @@ const AdminDashboard = () => {
               </div>
             </CardContent>
           </Card>
+        </TabsContent>
+        
+        <TabsContent value="domains" className="space-y-6">
+          <DomainSettings />
         </TabsContent>
         
         <TabsContent value="notifications" className="space-y-6">

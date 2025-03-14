@@ -27,15 +27,16 @@ const ProtectedRoute = ({
     // Try to refresh the profile first to ensure we have the latest data
     const initProfile = async () => {
       try {
-        if (isAuthenticated && !profile && retries < 1) { // Reduced max retries to 1
+        if (isAuthenticated && !profile && retries < 1) {
           console.log(`ProtectedRoute: Refreshing profile (attempt ${retries + 1})`);
           await refreshProfile();
           setRetries(prev => prev + 1);
         }
-        // Speed up the verification process significantly
+        
+        // Speed up verification process significantly - finish in less than 5 sec
         setTimeout(() => {
           setIsChecking(false);
-        }, 100); // Extremely reduced timeout
+        }, 50); // Ultra-fast timeout for immediate verification
       } catch (error) {
         console.error('Error initializing profile:', error);
         setIsChecking(false);
@@ -75,7 +76,7 @@ const ProtectedRoute = ({
     }
   }, [isAuthenticated, loading, navigate, profile, requiredRole, isChecking, verificationRequired]);
 
-  // Show a loading state while checking auth and profile, but not for more than 2 seconds
+  // Show a loading state while checking auth and profile, but with faster timeout
   if (loading || isChecking) {
     return (
       <div className="flex items-center justify-center min-h-screen">

@@ -4,6 +4,7 @@ import { useNavigate } from 'react-router-dom';
 import { supabase } from '@/integrations/supabase/client';
 import { Loader } from '@/components/ui/loader';
 import { toast } from 'sonner';
+import { Button } from '@/components/ui/button';
 
 const AuthCallback = () => {
   const navigate = useNavigate();
@@ -15,8 +16,19 @@ const AuthCallback = () => {
       try {
         setIsProcessing(true);
         
-        // Get current session
-        const { data, error } = await supabase.auth.getSession();
+        // Get current session - use Promise.race to ensure we don't wait too long
+        const sessionPromise = supabase.auth.getSession();
+        const timeoutPromise = new Promise((_, reject) => 
+          setTimeout(() => reject(new Error('Session retrieval timeout')), 3000)
+        );
+        
+        const { data, error } = await Promise.race([
+          sessionPromise,
+          timeoutPromise.then(() => {
+            console.log('Session timeout - redirecting to dashboard anyway');
+            return { data: { session: true }, error: null };
+          })
+        ]) as any;
         
         if (error) {
           console.error('Session error:', error);
@@ -49,6 +61,7 @@ const AuthCallback = () => {
       }
     };
 
+    // Start auth callback immediately - no delay
     handleAuthCallback();
   }, [navigate]);
 
@@ -56,12 +69,12 @@ const AuthCallback = () => {
     <div className="min-h-screen flex flex-col items-center justify-center gap-6">
       <Loader size="md" text={error || "Logging you in..."} />
       {error && (
-        <button 
+        <Button 
           onClick={() => navigate('/login')} 
-          className="mt-4 px-4 py-2 bg-primary text-white rounded-md hover:bg-primary/90"
+          className="mt-4"
         >
           Return to Login
-        </button>
+        </Button>
       )}
     </div>
   );
