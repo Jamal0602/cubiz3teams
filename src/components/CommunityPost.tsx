@@ -1,5 +1,5 @@
 
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import { Card, CardContent, CardFooter, CardHeader } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import { Textarea } from '@/components/ui/textarea';
@@ -8,7 +8,10 @@ import { useAuth } from '@/contexts/AuthContext';
 import { FileUpload } from '@/components/FileUpload';
 import { supabase } from '@/integrations/supabase/client';
 import { toast } from 'sonner';
-import { MessageSquare, ThumbsUp, Share2, Flag } from 'lucide-react';
+import { MessageSquare, ThumbsUp, Share2, Flag, Loader2 } from 'lucide-react';
+import { Badge } from '@/components/ui/badge';
+import { Separator } from '@/components/ui/separator';
+import { CubeLoader } from '@/components/ui/cube-loader';
 
 export const CreatePost = ({ onPostCreated }: { onPostCreated?: () => void }) => {
   const { user, profile } = useAuth();
@@ -64,7 +67,18 @@ export const CreatePost = ({ onPostCreated }: { onPostCreated?: () => void }) =>
     }
     
     try {
-      // Mock post creation since table doesn't exist yet
+      const { data, error } = await supabase
+        .from('community_posts')
+        .insert({
+          content,
+          attachments,
+          created_by: user.id
+        })
+        .select()
+        .single();
+      
+      if (error) throw error;
+      
       toast.success('Post created successfully!');
       setContent('');
       setAttachments([]);
@@ -90,7 +104,7 @@ export const CreatePost = ({ onPostCreated }: { onPostCreated?: () => void }) =>
         <div className="flex items-center gap-3">
           <Avatar>
             <AvatarImage src={profile?.avatar_url || undefined} />
-            <AvatarFallback>{profile?.full_name.substring(0, 2).toUpperCase()}</AvatarFallback>
+            <AvatarFallback>{profile?.full_name?.substring(0, 2).toUpperCase()}</AvatarFallback>
           </Avatar>
           <div>
             <p className="font-medium">{profile?.full_name}</p>
@@ -112,7 +126,30 @@ export const CreatePost = ({ onPostCreated }: { onPostCreated?: () => void }) =>
               onSuccess={handleAttachmentSuccess}
               allowedTypes={['image/jpeg', 'image/png', 'image/gif']}
               folder="community_posts"
+              buttonText="Upload Image"
             />
+          </div>
+        )}
+        
+        {attachments.length > 0 && (
+          <div className="grid grid-cols-1 gap-2 mt-3">
+            {attachments.map((url, index) => (
+              <div key={index} className="relative">
+                <img 
+                  src={url} 
+                  alt="Attachment" 
+                  className="rounded-md max-h-96 object-contain border" 
+                />
+                <Button 
+                  variant="destructive" 
+                  size="icon" 
+                  className="absolute top-2 right-2 h-6 w-6"
+                  onClick={() => setAttachments(prev => prev.filter((_, i) => i !== index))}
+                >
+                  <Flag className="h-3 w-3" />
+                </Button>
+              </div>
+            ))}
           </div>
         )}
         
@@ -133,51 +170,114 @@ export const CreatePost = ({ onPostCreated }: { onPostCreated?: () => void }) =>
           onClick={handleSubmit} 
           disabled={!content.trim() || isPosting}
         >
-          {isOffline ? 'Save Draft' : 'Post'}
+          {isPosting ? (
+            <>
+              <Loader2 className="mr-2 h-4 w-4 animate-spin" />
+              Posting...
+            </>
+          ) : isOffline ? 'Save Draft' : 'Post'}
         </Button>
       </CardFooter>
     </Card>
   );
 };
 
-// Demo data for posts
-const DEMO_POSTS = [
-  {
-    id: '1',
-    content: 'Just finished implementing a new feature for our project! Check out the documentation I uploaded.',
-    created_at: new Date(Date.now() - 3600000).toISOString(),
-    created_by: {
-      full_name: 'Alex Johnson',
-      cubiz_id: 'alex.johnson@cubiz',
-      avatar_url: null
-    },
-    attachments: []
-  },
-  {
-    id: '2',
-    content: 'Team meeting tomorrow at 10 AM. Please prepare your weekly reports.',
-    created_at: new Date(Date.now() - 7200000).toISOString(),
-    created_by: {
-      full_name: 'Sarah Wilson',
-      cubiz_id: 'sarah.wilson@cubiz',
-      avatar_url: null
-    },
-    attachments: []
-  }
-];
-
 export const PostList = () => {
-  const [posts, setPosts] = useState<any[]>(DEMO_POSTS);
-  const [loading, setLoading] = useState(false);
+  const { user } = useAuth();
+  const [posts, setPosts] = useState<any[]>([]);
+  const [loading, setLoading] = useState(true);
+  const [profiles, setProfiles] = useState<{[key: string]: any}>({});
   
-  const refreshPosts = () => {
-    // In a real implementation, this would fetch posts from Supabase
-    setPosts(DEMO_POSTS);
+  useEffect(() => {
+    if (user) {
+      refreshPosts();
+    }
+  }, [user]);
+  
+  const refreshPosts = async () => {
+    try {
+      setLoading(true);
+      
+      // Fetch posts
+      const { data: postData, error: postError } = await supabase
+        .from('community_posts')
+        .select('*')
+        .order('created_at', { ascending: false });
+      
+      if (postError) throw postError;
+      
+      // Get unique user IDs from posts
+      const userIds = [...new Set(postData?.map(post => post.created_by) || [])];
+      
+      // Fetch user profiles
+      const { data: profileData, error: profileError } = await supabase
+        .from('profiles')
+        .select('id, full_name, cubiz_id, avatar_url')
+        .in('id', userIds);
+      
+      if (profileError) throw profileError;
+      
+      // Create a map of user profiles
+      const profileMap = profileData?.reduce((acc, profile) => {
+        acc[profile.id] = profile;
+        return acc;
+      }, {} as {[key: string]: any}) || {};
+      
+      setProfiles(profileMap);
+      setPosts(postData || []);
+    } catch (error) {
+      console.error('Error fetching posts:', error);
+      toast.error('Failed to load posts');
+    } finally {
+      setLoading(false);
+    }
   };
   
-  React.useEffect(() => {
-    refreshPosts();
-  }, []);
+  const handleLike = async (postId: string) => {
+    if (!user) return;
+    
+    try {
+      // Get the current post
+      const { data: post, error: getError } = await supabase
+        .from('community_posts')
+        .select('likes, liked_by')
+        .eq('id', postId)
+        .single();
+      
+      if (getError) throw getError;
+      
+      const likedBy = post.liked_by || [];
+      const hasLiked = likedBy.includes(user.id);
+      
+      // Toggle like status
+      const newLikedBy = hasLiked
+        ? likedBy.filter((id: string) => id !== user.id)
+        : [...likedBy, user.id];
+      
+      const newLikes = hasLiked ? (post.likes || 1) - 1 : (post.likes || 0) + 1;
+      
+      // Update the post
+      const { error: updateError } = await supabase
+        .from('community_posts')
+        .update({
+          likes: newLikes,
+          liked_by: newLikedBy
+        })
+        .eq('id', postId);
+      
+      if (updateError) throw updateError;
+      
+      // Update the local state
+      setPosts(posts.map(p => 
+        p.id === postId 
+          ? { ...p, likes: newLikes, liked_by: newLikedBy }
+          : p
+      ));
+    } catch (error) {
+      console.error('Error liking post:', error);
+      toast.error('Failed to like post');
+    }
+  };
   
   if (loading) {
     return (
@@ -218,59 +318,71 @@ export const PostList = () => {
           </div>
         </Card>
       ) : (
-        posts.map((post) => (
-          <Card key={post.id} className="overflow-hidden">
-            <CardHeader className="pb-2">
-              <div className="flex items-center gap-3">
-                <Avatar>
-                  <AvatarImage src={post.created_by?.avatar_url || undefined} />
-                  <AvatarFallback>{post.created_by?.full_name.substring(0, 2).toUpperCase()}</AvatarFallback>
-                </Avatar>
-                <div>
-                  <p className="font-medium">{post.created_by?.full_name}</p>
-                  <p className="text-xs text-muted-foreground">
-                    {post.created_by?.cubiz_id} • {new Date(post.created_at).toLocaleString()}
-                  </p>
+        posts.map((post) => {
+          const postCreator = profiles[post.created_by] || {};
+          const hasLiked = post.liked_by?.includes(user?.id);
+          
+          return (
+            <Card key={post.id} className="overflow-hidden">
+              <CardHeader className="pb-2">
+                <div className="flex items-center gap-3">
+                  <Avatar>
+                    <AvatarImage src={postCreator?.avatar_url || undefined} />
+                    <AvatarFallback>{postCreator?.full_name?.substring(0, 2).toUpperCase()}</AvatarFallback>
+                  </Avatar>
+                  <div>
+                    <p className="font-medium">{postCreator?.full_name || 'Unknown User'}</p>
+                    <p className="text-xs text-muted-foreground">
+                      {postCreator?.cubiz_id || 'unknown'} • {new Date(post.created_at).toLocaleString()}
+                    </p>
+                  </div>
                 </div>
-              </div>
-            </CardHeader>
-            <CardContent>
-              <div className="whitespace-pre-wrap mb-4">{post.content}</div>
-              
-              {post.attachments && post.attachments.length > 0 && (
-                <div className="grid grid-cols-1 gap-2 mt-3">
-                  {post.attachments.map((url: string, index: number) => (
-                    <img 
-                      key={index} 
-                      src={url} 
-                      alt="Post attachment" 
-                      className="rounded-md max-h-96 object-contain" 
+              </CardHeader>
+              <CardContent>
+                <div className="whitespace-pre-wrap mb-4">{post.content}</div>
+                
+                {post.attachments && post.attachments.length > 0 && (
+                  <div className="grid grid-cols-1 gap-2 mt-3">
+                    {post.attachments.map((url: string, index: number) => (
+                      <img 
+                        key={index} 
+                        src={url} 
+                        alt="Post attachment" 
+                        className="rounded-md max-h-96 object-contain" 
+                      />
+                    ))}
+                  </div>
+                )}
+              </CardContent>
+              <CardFooter className="border-t bg-muted/30 px-2">
+                <div className="flex w-full gap-1">
+                  <Button 
+                    variant="ghost" 
+                    size="sm" 
+                    className="flex-1"
+                    onClick={() => handleLike(post.id)}
+                  >
+                    <ThumbsUp 
+                      className={`h-4 w-4 mr-1 ${hasLiked ? 'fill-primary text-primary' : ''}`} 
                     />
-                  ))}
+                    {post.likes || 0} {post.likes === 1 ? 'Like' : 'Likes'}
+                  </Button>
+                  <Button variant="ghost" size="sm" className="flex-1">
+                    <MessageSquare className="h-4 w-4 mr-1" />
+                    Comment
+                  </Button>
+                  <Button variant="ghost" size="sm" className="flex-1">
+                    <Share2 className="h-4 w-4 mr-1" />
+                    Share
+                  </Button>
+                  <Button variant="ghost" size="sm" className="h-8 w-8 p-0">
+                    <Flag className="h-4 w-4" />
+                  </Button>
                 </div>
-              )}
-            </CardContent>
-            <CardFooter className="border-t bg-muted/30 px-2">
-              <div className="flex w-full gap-1">
-                <Button variant="ghost" size="sm" className="flex-1">
-                  <ThumbsUp className="h-4 w-4 mr-1" />
-                  Like
-                </Button>
-                <Button variant="ghost" size="sm" className="flex-1">
-                  <MessageSquare className="h-4 w-4 mr-1" />
-                  Comment
-                </Button>
-                <Button variant="ghost" size="sm" className="flex-1">
-                  <Share2 className="h-4 w-4 mr-1" />
-                  Share
-                </Button>
-                <Button variant="ghost" size="sm" className="h-8 w-8 p-0">
-                  <Flag className="h-4 w-4" />
-                </Button>
-              </div>
-            </CardFooter>
-          </Card>
-        ))
+              </CardFooter>
+            </Card>
+          );
+        })
       )}
     </div>
   );

@@ -15,7 +15,7 @@ import { Label } from '@/components/ui/label';
 import { toast } from 'sonner';
 import { UserCheck, UserX, AlertCircle, Users, Award, Star, Bell, Upload, CheckCircle, Briefcase, Globe } from 'lucide-react';
 import { UserProfile } from '@/contexts/AuthContext';
-import { DomainSettings } from '@/components/admin/DomainSettings';
+import DomainSettings from '@/components/admin/DomainSettings';
 
 interface PendingUser extends UserProfile {
   email?: string;
