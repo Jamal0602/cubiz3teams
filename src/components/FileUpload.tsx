@@ -65,13 +65,26 @@ export const FileUpload: React.FC<FileUploadProps> = ({
         .upload(filePath, file, {
           cacheControl: '3600',
           upsert: false,
-          onUploadProgress: (event) => {
-            const percentProgress = (event.loaded / event.total) * 100;
-            setProgress(percentProgress);
-          }
         });
       
+      // Set up progress tracking
+      const handleProgress = (progress: number) => {
+        setProgress(progress);
+      };
+      
+      // Update progress at intervals to simulate progress
+      const intervalId = setInterval(() => {
+        setProgress((prev) => {
+          const newProgress = Math.min(prev + 10, 99);
+          return newProgress;
+        });
+      }, 100);
+      
       if (error) throw error;
+      
+      // Set to 100% when done
+      clearInterval(intervalId);
+      setProgress(100);
       
       const { data: urlData } = supabase.storage.from('files').getPublicUrl(filePath);
       

@@ -27,6 +27,7 @@ import AdminDashboard from "@/pages/AdminDashboard";
 import Settings from "@/pages/Settings";
 import Community from "@/pages/Community";
 import Files from "@/pages/Files";
+import AIHelp from "@/pages/AIHelp";
 
 const queryClient = new QueryClient();
 
@@ -152,6 +153,17 @@ const App = () => (
                     <ProtectedRoute>
                       <AppLayout>
                         <Files />
+                      </AppLayout>
+                    </ProtectedRoute>
+                  } 
+                />
+                
+                <Route 
+                  path="/ai-help" 
+                  element={
+                    <ProtectedRoute>
+                      <AppLayout>
+                        <AIHelp />
                       </AppLayout>
                     </ProtectedRoute>
                   } 

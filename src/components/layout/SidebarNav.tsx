@@ -17,7 +17,8 @@ import {
   Clock,
   LogOut,
   FileText,
-  Share2
+  Share2,
+  Sparkles
 } from 'lucide-react';
 import { cn } from '@/lib/utils';
 import { useAuth } from '@/contexts/AuthContext';
@@ -25,6 +26,7 @@ import { Button } from '@/components/ui/button';
 import { Avatar, AvatarFallback, AvatarImage } from '@/components/ui/avatar';
 import { Separator } from '@/components/ui/separator';
 import { Badge } from '@/components/ui/badge';
+import { TeamzLogo } from '@/components/ui/teamz-logo';
 
 interface SidebarNavProps {
   className?: string;
@@ -130,6 +132,13 @@ const SidebarNav: React.FC<SidebarNavProps> = ({ className }) => {
       show: true,
     },
     {
+      name: 'AI Assistant',
+      href: '/ai-help',
+      icon: Sparkles,
+      exact: false,
+      show: true,
+    },
+    {
       name: 'Profile',
       href: '/profile',
       icon: UserCircle,
@@ -157,10 +166,7 @@ const SidebarNav: React.FC<SidebarNavProps> = ({ className }) => {
     >
       <div className="flex items-center justify-between p-4 h-16">
         {!collapsed && (
-          <div className="flex items-center gap-2">
-            <img src="/logo.png" alt="Teamz" className="w-8 h-8" />
-            <h1 className="font-bold text-lg">Teamz</h1>
-          </div>
+          <TeamzLogo size="md" variant="full" />
         )}
         <Button
           variant="ghost"

@@ -240,14 +240,15 @@ export const PostList = () => {
       // Get the current post
       const { data: post, error: getError } = await supabase
         .from('community_posts')
-        .select('likes, liked_by')
+        .select('*')
         .eq('id', postId)
         .single();
       
       if (getError) throw getError;
       
+      // Initialize liked_by and likes if they don't exist (for backward compatibility)
       const likedBy = post.liked_by || [];
-      const hasLiked = likedBy.includes(user.id);
+      const hasLiked = Array.isArray(likedBy) && likedBy.includes(user.id);
       
       // Toggle like status
       const newLikedBy = hasLiked
@@ -320,7 +321,7 @@ export const PostList = () => {
       ) : (
         posts.map((post) => {
           const postCreator = profiles[post.created_by] || {};
-          const hasLiked = post.liked_by?.includes(user?.id);
+          const hasLiked = Array.isArray(post.liked_by) && post.liked_by?.includes(user?.id);
           
           return (
             <Card key={post.id} className="overflow-hidden">
