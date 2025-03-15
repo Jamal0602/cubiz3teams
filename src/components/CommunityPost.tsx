@@ -1,4 +1,3 @@
-
 import React, { useState } from 'react';
 import { Avatar, AvatarFallback, AvatarImage } from '@/components/ui/avatar';
 import { Button } from '@/components/ui/button';
@@ -10,9 +9,8 @@ import { DropdownMenu, DropdownMenuContent, DropdownMenuItem, DropdownMenuTrigge
 import { toast } from 'sonner';
 import { supabase } from '@/integrations/supabase/client';
 import { useAuth } from '@/contexts/AuthContext';
-import FileUpload from './FileUpload';
+import { FileUpload } from './FileUpload';
 
-// Define interfaces for post data
 export interface Post {
   id?: string;
   content?: string;
@@ -42,16 +40,16 @@ interface Comment {
 interface PostProps {
   post: Post;
   onUpdate?: (updatedPost: Post) => void;
+  onDelete?: (postId: string) => void;
 }
 
-const CommunityPost: React.FC<PostProps> = ({ post, onUpdate }) => {
+const CommunityPost: React.FC<PostProps> = ({ post, onUpdate, onDelete }) => {
   const { user, profile } = useAuth();
   const [showComments, setShowComments] = useState(false);
   const [newComment, setNewComment] = useState('');
   const [commentAttachments, setCommentAttachments] = useState<string[]>([]);
   const [isSubmittingComment, setIsSubmittingComment] = useState(false);
   
-  // Format date for display
   const formatDate = (dateString?: string) => {
     if (!dateString) return '';
     
@@ -64,7 +62,6 @@ const CommunityPost: React.FC<PostProps> = ({ post, onUpdate }) => {
     }).format(date);
   };
   
-  // Handle like functionality
   const handleLike = async () => {
     if (!user) {
       toast.error('You need to be logged in to like posts');
@@ -72,8 +69,6 @@ const CommunityPost: React.FC<PostProps> = ({ post, onUpdate }) => {
     }
     
     try {
-      // Here we would normally update the likes in the database
-      // For demonstration purposes, we'll just update the local state
       const updatedPost = {
         ...post,
         likes: (post.likes || 0) + 1
@@ -90,7 +85,6 @@ const CommunityPost: React.FC<PostProps> = ({ post, onUpdate }) => {
     }
   };
   
-  // Handle comment submission
   const handleSubmitComment = async () => {
     if (!newComment.trim() && commentAttachments.length === 0) {
       toast.error('Comment cannot be empty');
@@ -105,8 +99,6 @@ const CommunityPost: React.FC<PostProps> = ({ post, onUpdate }) => {
     setIsSubmittingComment(true);
     
     try {
-      // Here we would normally save the comment to the database
-      // For demonstration purposes, we'll just update the local state
       const newCommentObj: Comment = {
         id: Date.now().toString(),
         content: newComment,
@@ -138,16 +130,12 @@ const CommunityPost: React.FC<PostProps> = ({ post, onUpdate }) => {
     }
   };
   
-  // Handle file uploads for comments
   const handleCommentFileUpload = (files: File[]) => {
-    // For demonstration purposes, we're just storing the file names
-    // In a real app, you would upload these to storage and store the URLs
     const newAttachments = files.map(file => URL.createObjectURL(file));
     setCommentAttachments([...commentAttachments, ...newAttachments]);
     toast.success(`${files.length} file(s) attached to your comment`);
   };
   
-  // Handle share functionality
   const handleShare = () => {
     if (navigator.share) {
       navigator.share({
@@ -158,7 +146,6 @@ const CommunityPost: React.FC<PostProps> = ({ post, onUpdate }) => {
       .then(() => toast.success('Post shared successfully'))
       .catch((error) => console.error('Error sharing:', error));
     } else {
-      // Fallback for browsers that don't support the Web Share API
       navigator.clipboard.writeText(window.location.href)
         .then(() => toast.success('Link copied to clipboard'))
         .catch(() => toast.error('Failed to copy link'));
@@ -271,7 +258,6 @@ const CommunityPost: React.FC<PostProps> = ({ post, onUpdate }) => {
           <div className="w-full mt-4">
             <Separator className="my-4" />
             
-            {/* Comment list */}
             {post.comments && post.comments.length > 0 ? (
               <div className="space-y-4 mb-4">
                 {post.comments.map((comment) => (
@@ -298,7 +284,6 @@ const CommunityPost: React.FC<PostProps> = ({ post, onUpdate }) => {
               <p className="text-center text-muted-foreground py-4">No comments yet. Be the first to comment!</p>
             )}
             
-            {/* Comment input */}
             <div className="flex flex-col space-y-2 mt-2">
               <Textarea
                 placeholder="Write a comment..."

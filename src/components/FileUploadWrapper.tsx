@@ -1,6 +1,6 @@
 
 import React from 'react';
-import FileUpload from './FileUpload';
+import { FileUpload } from './FileUpload';
 
 interface FileUploadWrapperProps {
   onFilesSelected: (files: File[]) => void;
