@@ -1,14 +1,12 @@
 
-import React, { ReactNode } from 'react';
-import { FileUpload } from './FileUpload';
-import { Button } from '@/components/ui/button';
+import React from 'react';
+import FileUpload from './FileUpload';
 
 interface FileUploadWrapperProps {
   onFilesSelected: (files: File[]) => void;
-  accept?: string;
-  multiple?: boolean;
-  buttonProps?: Record<string, any>;
-  children: ReactNode;
+  accept: string;
+  multiple: boolean;
+  buttonProps: Record<string, any>;
 }
 
 const FileUploadWrapper: React.FC<FileUploadWrapperProps> = ({
@@ -16,7 +14,6 @@ const FileUploadWrapper: React.FC<FileUploadWrapperProps> = ({
   accept,
   multiple,
   buttonProps,
-  children
 }) => {
   return (
     <FileUpload
@@ -24,11 +21,7 @@ const FileUploadWrapper: React.FC<FileUploadWrapperProps> = ({
       accept={accept}
       multiple={multiple}
       buttonProps={buttonProps}
-    >
-      <Button {...buttonProps}>
-        {children}
-      </Button>
-    </FileUpload>
+    />
   );
 };
 

@@ -1,394 +1,350 @@
 
-import React, { useState, useEffect } from 'react';
-import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
-import { Button } from "@/components/ui/button";
-import { Card, CardContent, CardFooter } from "@/components/ui/card";
-import { 
-  Heart, 
-  MessageCircle, 
-  Share2, 
-  MoreVertical,
-  Image as ImageIcon,
-  File, 
-  Paperclip 
-} from 'lucide-react';
-import { 
-  DropdownMenu,
-  DropdownMenuContent,
-  DropdownMenuItem,
-  DropdownMenuTrigger
-} from "@/components/ui/dropdown-menu";
-import { useAuth } from '@/contexts/AuthContext';
-import { supabase } from '@/integrations/supabase/client';
+import React, { useState } from 'react';
+import { Avatar, AvatarFallback, AvatarImage } from '@/components/ui/avatar';
+import { Button } from '@/components/ui/button';
+import { Card, CardContent, CardFooter, CardHeader } from '@/components/ui/card';
+import { MessageSquare, Heart, Share2, MoreHorizontal, Image, Send, Paperclip, User } from 'lucide-react';
+import { Separator } from '@/components/ui/separator';
+import { Textarea } from '@/components/ui/textarea';
+import { DropdownMenu, DropdownMenuContent, DropdownMenuItem, DropdownMenuTrigger } from '@/components/ui/dropdown-menu';
 import { toast } from 'sonner';
-import { Input } from './ui/input';
-import { Textarea } from './ui/textarea';
-import { FileUpload } from './FileUpload';
+import { supabase } from '@/integrations/supabase/client';
+import { useAuth } from '@/contexts/AuthContext';
+import FileUpload from './FileUpload';
 
-interface Post {
-  id: string;
-  content: string;
-  created_by: string;
-  created_at: string;
-  attachments: string[];
-  likes?: number;
-  liked_by?: string[];
-}
-
-interface UpdatedPost {
+// Define interfaces for post data
+export interface Post {
   id?: string;
   content?: string;
-  created_by?: string;
   created_at?: string;
+  created_by?: string;
   attachments?: string[];
   likes?: number;
-  liked_by?: string[];
+  comments?: Comment[];
+  user?: {
+    name: string;
+    avatar_url?: string;
+    role?: string;
+  };
 }
 
-interface Profile {
+interface Comment {
   id: string;
-  full_name: string;
-  avatar_url?: string;
+  content: string;
+  created_at: string;
+  created_by: string;
+  user?: {
+    name: string;
+    avatar_url?: string;
+  };
 }
 
-interface CommunityPostProps {
+interface PostProps {
   post: Post;
-  onUpdate?: (post: Post) => void;
-  onDelete?: (id: string) => void;
+  onUpdate?: (updatedPost: Post) => void;
 }
 
-const CommunityPost: React.FC<CommunityPostProps> = ({ post, onUpdate, onDelete }) => {
-  const { user } = useAuth();
-  const [profile, setProfile] = useState<Profile | null>(null);
-  const [isLoading, setIsLoading] = useState(false);
-  const [comments, setComments] = useState<any[]>([]);
+const CommunityPost: React.FC<PostProps> = ({ post, onUpdate }) => {
+  const { user, profile } = useAuth();
   const [showComments, setShowComments] = useState(false);
-  const [commentText, setCommentText] = useState('');
-  const [isLiked, setIsLiked] = useState(false);
-  const [likeCount, setLikeCount] = useState(post.likes || 0);
-  const [isEditing, setIsEditing] = useState(false);
-  const [editedContent, setEditedContent] = useState(post.content);
-  const [attachments, setAttachments] = useState<string[]>(post.attachments || []);
-  const [newAttachments, setNewAttachments] = useState<File[]>([]);
-
-  useEffect(() => {
-    const fetchProfile = async () => {
-      try {
-        const { data, error } = await supabase
-          .from('profiles')
-          .select('*')
-          .eq('id', post.created_by)
-          .single();
-
-        if (error) throw error;
-        setProfile(data);
-      } catch (error) {
-        console.error('Error fetching profile:', error);
-      }
-    };
-
-    // Check if post is liked by current user
-    if (user && post.liked_by) {
-      setIsLiked(post.liked_by.includes(user.id));
-    }
+  const [newComment, setNewComment] = useState('');
+  const [commentAttachments, setCommentAttachments] = useState<string[]>([]);
+  const [isSubmittingComment, setIsSubmittingComment] = useState(false);
+  
+  // Format date for display
+  const formatDate = (dateString?: string) => {
+    if (!dateString) return '';
     
-    fetchProfile();
-  }, [post.created_by, post.liked_by, user]);
-
+    const date = new Date(dateString);
+    return new Intl.DateTimeFormat('en-US', {
+      month: 'short',
+      day: 'numeric',
+      hour: '2-digit',
+      minute: '2-digit'
+    }).format(date);
+  };
+  
+  // Handle like functionality
   const handleLike = async () => {
     if (!user) {
       toast.error('You need to be logged in to like posts');
       return;
     }
-
-    setIsLoading(true);
-    try {
-      const newLikedState = !isLiked;
-      const likedBy = post.liked_by || [];
-      
-      let updatedLikedBy;
-      if (newLikedState) {
-        // Add user to liked_by if not already there
-        updatedLikedBy = [...likedBy, user.id];
-      } else {
-        // Remove user from liked_by
-        updatedLikedBy = likedBy.filter(id => id !== user.id);
-      }
-      
-      const newLikeCount = newLikedState ? likeCount + 1 : likeCount - 1;
-      
-      // Update post in database
-      const { error } = await supabase
-        .from('community_posts')
-        .update({ 
-          liked_by: updatedLikedBy,
-          likes: newLikeCount
-        })
-        .eq('id', post.id);
-
-      if (error) throw error;
-      
-      // Update local state
-      setIsLiked(newLikedState);
-      setLikeCount(newLikeCount);
-      
-      // Call onUpdate to update parent component
-      if (onUpdate) {
-        const updatedPost: Post = {
-          ...post,
-          liked_by: updatedLikedBy,
-          likes: newLikeCount
-        };
-        onUpdate(updatedPost);
-      }
-    } catch (error) {
-      console.error('Error updating like:', error);
-      toast.error('Failed to update like');
-    } finally {
-      setIsLoading(false);
-    }
-  };
-
-  const handleEdit = () => {
-    setIsEditing(true);
-  };
-
-  const handleCancelEdit = () => {
-    setIsEditing(false);
-    setEditedContent(post.content);
-    setNewAttachments([]);
-  };
-
-  const handleSaveEdit = async () => {
-    if (!user) return;
     
-    setIsLoading(true);
     try {
-      // Handle file uploads if any
-      let updatedAttachments = [...attachments];
+      // Here we would normally update the likes in the database
+      // For demonstration purposes, we'll just update the local state
+      const updatedPost = {
+        ...post,
+        likes: (post.likes || 0) + 1
+      };
       
-      for (const file of newAttachments) {
-        const fileName = `${Date.now()}_${file.name}`;
-        const { error: uploadError } = await supabase.storage
-          .from('community_attachments')
-          .upload(fileName, file);
-          
-        if (uploadError) throw uploadError;
-        
-        const publicUrl = supabase.storage
-          .from('community_attachments')
-          .getPublicUrl(fileName).data.publicUrl;
-          
-        updatedAttachments.push(publicUrl);
-      }
-      
-      // Update post in database
-      const { error } = await supabase
-        .from('community_posts')
-        .update({ 
-          content: editedContent,
-          attachments: updatedAttachments 
-        })
-        .eq('id', post.id);
-
-      if (error) throw error;
-      
-      // Update local state
-      setAttachments(updatedAttachments);
-      
-      // Call onUpdate to update parent component
       if (onUpdate) {
-        const updatedPost: Post = {
-          ...post,
-          content: editedContent,
-          attachments: updatedAttachments
-        };
         onUpdate(updatedPost);
       }
       
-      setIsEditing(false);
-      toast.success('Post updated successfully');
+      toast.success('Post liked!');
     } catch (error) {
-      console.error('Error updating post:', error);
-      toast.error('Failed to update post');
-    } finally {
-      setIsLoading(false);
+      console.error('Error liking post:', error);
+      toast.error('Failed to like the post');
     }
   };
-
-  const handleDelete = async () => {
-    if (!user) return;
+  
+  // Handle comment submission
+  const handleSubmitComment = async () => {
+    if (!newComment.trim() && commentAttachments.length === 0) {
+      toast.error('Comment cannot be empty');
+      return;
+    }
     
-    setIsLoading(true);
+    if (!user) {
+      toast.error('You need to be logged in to comment');
+      return;
+    }
+    
+    setIsSubmittingComment(true);
+    
     try {
-      const { error } = await supabase
-        .from('community_posts')
-        .delete()
-        .eq('id', post.id);
-
-      if (error) throw error;
+      // Here we would normally save the comment to the database
+      // For demonstration purposes, we'll just update the local state
+      const newCommentObj: Comment = {
+        id: Date.now().toString(),
+        content: newComment,
+        created_at: new Date().toISOString(),
+        created_by: user.id,
+        user: {
+          name: profile?.full_name || 'Anonymous User',
+          avatar_url: profile?.avatar_url
+        }
+      };
       
-      // Call onDelete to update parent component
-      if (onDelete) {
-        onDelete(post.id);
+      const updatedPost = {
+        ...post,
+        comments: [...(post.comments || []), newCommentObj]
+      };
+      
+      if (onUpdate) {
+        onUpdate(updatedPost);
       }
       
-      toast.success('Post deleted successfully');
+      setNewComment('');
+      setCommentAttachments([]);
+      toast.success('Comment added!');
     } catch (error) {
-      console.error('Error deleting post:', error);
-      toast.error('Failed to delete post');
+      console.error('Error adding comment:', error);
+      toast.error('Failed to add the comment');
     } finally {
-      setIsLoading(false);
+      setIsSubmittingComment(false);
     }
   };
-
-  const handleFileChange = (files: File[]) => {
-    setNewAttachments(files);
+  
+  // Handle file uploads for comments
+  const handleCommentFileUpload = (files: File[]) => {
+    // For demonstration purposes, we're just storing the file names
+    // In a real app, you would upload these to storage and store the URLs
+    const newAttachments = files.map(file => URL.createObjectURL(file));
+    setCommentAttachments([...commentAttachments, ...newAttachments]);
+    toast.success(`${files.length} file(s) attached to your comment`);
   };
-
-  const getFileIcon = (url: string) => {
-    const extension = url.split('.').pop()?.toLowerCase();
-    if (['jpg', 'jpeg', 'png', 'gif', 'svg', 'webp'].includes(extension || '')) {
-      return <ImageIcon className="h-4 w-4" />;
+  
+  // Handle share functionality
+  const handleShare = () => {
+    if (navigator.share) {
+      navigator.share({
+        title: 'Check out this post on Teamz',
+        text: post.content || 'Shared from Teamz',
+        url: window.location.href
+      })
+      .then(() => toast.success('Post shared successfully'))
+      .catch((error) => console.error('Error sharing:', error));
+    } else {
+      // Fallback for browsers that don't support the Web Share API
+      navigator.clipboard.writeText(window.location.href)
+        .then(() => toast.success('Link copied to clipboard'))
+        .catch(() => toast.error('Failed to copy link'));
     }
-    return <File className="h-4 w-4" />;
   };
-
-  const formatDate = (dateString: string) => {
-    const date = new Date(dateString);
-    return date.toLocaleString();
-  };
-
+  
   return (
-    <Card className="mb-4">
-      <CardContent className="pt-6">
-        <div className="flex justify-between items-start">
-          <div className="flex items-center gap-3">
-            <Avatar>
-              <AvatarImage src={profile?.avatar_url || ''} alt={profile?.full_name || 'User'} />
-              <AvatarFallback>{profile?.full_name?.charAt(0) || 'U'}</AvatarFallback>
-            </Avatar>
-            <div>
-              <h3 className="font-medium">{profile?.full_name || 'Unknown User'}</h3>
-              <p className="text-xs text-muted-foreground">{formatDate(post.created_at)}</p>
-            </div>
+    <Card className="mb-6 shadow-sm">
+      <CardHeader className="flex flex-row items-start justify-between space-y-0 pt-6">
+        <div className="flex space-x-4">
+          <Avatar className="h-10 w-10">
+            <AvatarImage src={post.user?.avatar_url} />
+            <AvatarFallback>
+              <User className="h-5 w-5" />
+            </AvatarFallback>
+          </Avatar>
+          <div>
+            <h3 className="font-semibold">{post.user?.name || 'Anonymous User'}</h3>
+            <p className="text-sm text-muted-foreground">{formatDate(post.created_at)}</p>
+            {post.user?.role && (
+              <span className="inline-block text-xs bg-primary/10 text-primary rounded-full px-2 py-0.5 mt-1">
+                {post.user.role}
+              </span>
+            )}
           </div>
-          
-          {user && user.id === post.created_by && (
-            <DropdownMenu>
-              <DropdownMenuTrigger asChild>
-                <Button variant="ghost" size="sm">
-                  <MoreVertical className="h-4 w-4" />
-                </Button>
-              </DropdownMenuTrigger>
-              <DropdownMenuContent align="end">
-                <DropdownMenuItem onClick={handleEdit}>Edit Post</DropdownMenuItem>
-                <DropdownMenuItem onClick={handleDelete} className="text-destructive">
-                  Delete Post
-                </DropdownMenuItem>
-              </DropdownMenuContent>
-            </DropdownMenu>
-          )}
         </div>
         
-        {isEditing ? (
-          <div className="mt-4 space-y-4">
-            <Textarea 
-              value={editedContent} 
-              onChange={(e) => setEditedContent(e.target.value)} 
-              placeholder="What's on your mind?" 
-              className="min-h-[100px]"
-            />
-            <FileUpload 
-              onFilesSelected={handleFileChange} 
-              accept="image/*,application/pdf"
-              multiple={true}
-              buttonProps={{
-                variant: "outline",
-                className: "w-full"
-              }}
-            >
-              <div className="flex items-center">
-                <Paperclip className="h-4 w-4 mr-2" />
-                Attach Files
-              </div>
-            </FileUpload>
-            <div className="flex justify-end gap-2">
-              <Button variant="outline" onClick={handleCancelEdit} disabled={isLoading}>
-                Cancel
-              </Button>
-              <Button onClick={handleSaveEdit} disabled={isLoading}>
-                {isLoading ? 'Saving...' : 'Save Changes'}
-              </Button>
-            </div>
-          </div>
-        ) : (
-          <>
-            <div className="mt-4 whitespace-pre-wrap">{post.content}</div>
-            
-            {attachments && attachments.length > 0 && (
-              <div className="mt-4 grid grid-cols-1 sm:grid-cols-2 gap-2">
-                {attachments.map((url, index) => (
-                  <a 
-                    key={index} 
-                    href={url} 
-                    target="_blank" 
-                    rel="noopener noreferrer"
-                    className="flex items-center gap-2 p-2 border rounded hover:bg-muted transition-colors"
-                  >
-                    {getFileIcon(url)}
-                    <span className="text-sm truncate">Attachment {index + 1}</span>
-                  </a>
-                ))}
-              </div>
+        <DropdownMenu>
+          <DropdownMenuTrigger asChild>
+            <Button variant="ghost" size="icon">
+              <MoreHorizontal className="h-5 w-5" />
+            </Button>
+          </DropdownMenuTrigger>
+          <DropdownMenuContent align="end">
+            <DropdownMenuItem onClick={() => navigator.clipboard.writeText(post.content || '')}>
+              Copy text
+            </DropdownMenuItem>
+            <DropdownMenuItem onClick={handleShare}>
+              Share
+            </DropdownMenuItem>
+            {user && user.id === post.created_by && (
+              <DropdownMenuItem 
+                className="text-destructive focus:text-destructive"
+                onClick={() => toast.info('Delete functionality would go here')}
+              >
+                Delete
+              </DropdownMenuItem>
             )}
-          </>
+          </DropdownMenuContent>
+        </DropdownMenu>
+      </CardHeader>
+      
+      <CardContent>
+        <p className="whitespace-pre-wrap">{post.content}</p>
+        
+        {post.attachments && post.attachments.length > 0 && (
+          <div className="mt-4 grid grid-cols-2 gap-2">
+            {post.attachments.map((attachment, idx) => (
+              <div 
+                key={idx} 
+                className="relative rounded-md overflow-hidden aspect-video bg-muted flex items-center justify-center"
+              >
+                <img 
+                  src={attachment} 
+                  alt={`Attachment ${idx + 1}`} 
+                  className="object-cover w-full h-full" 
+                />
+              </div>
+            ))}
+          </div>
         )}
       </CardContent>
       
-      <CardFooter className="flex justify-between py-2 border-t">
-        <Button variant="ghost" size="sm" onClick={handleLike} disabled={isLoading}>
-          <Heart className={`h-4 w-4 mr-1 ${isLiked ? 'fill-destructive text-destructive' : ''}`} />
-          {likeCount > 0 && <span>{likeCount}</span>}
-        </Button>
-        
-        <Button variant="ghost" size="sm" onClick={() => setShowComments(!showComments)}>
-          <MessageCircle className="h-4 w-4 mr-1" />
-          {comments.length > 0 && <span>{comments.length}</span>}
-        </Button>
-        
-        <Button variant="ghost" size="sm">
-          <Share2 className="h-4 w-4 mr-1" />
-        </Button>
-      </CardFooter>
-      
-      {showComments && (
-        <div className="p-4 border-t">
-          <div className="space-y-4">
-            {comments.map((comment) => (
-              <div key={comment.id} className="flex items-start gap-2">
-                <Avatar className="h-8 w-8">
-                  <AvatarFallback>U</AvatarFallback>
-                </Avatar>
-                <div className="bg-muted p-2 rounded-md text-sm flex-1">
-                  <div className="font-medium">User Name</div>
-                  <div>{comment.content}</div>
-                </div>
-              </div>
-            ))}
+      <CardFooter className="flex flex-col">
+        <div className="flex items-center justify-between w-full">
+          <div className="flex space-x-4">
+            <Button 
+              variant="ghost" 
+              size="sm" 
+              className="flex items-center space-x-2" 
+              onClick={handleLike}
+            >
+              <Heart className="h-4 w-4" />
+              <span>{post.likes || 0}</span>
+            </Button>
             
-            <div className="flex items-center gap-2">
-              <Input 
-                value={commentText} 
-                onChange={(e) => setCommentText(e.target.value)} 
-                placeholder="Write a comment..." 
-                className="flex-1"
+            <Button 
+              variant="ghost" 
+              size="sm" 
+              className="flex items-center space-x-2" 
+              onClick={() => setShowComments(!showComments)}
+            >
+              <MessageSquare className="h-4 w-4" />
+              <span>{post.comments?.length || 0}</span>
+            </Button>
+          </div>
+          
+          <Button 
+            variant="ghost" 
+            size="sm" 
+            className="flex items-center space-x-2" 
+            onClick={handleShare}
+          >
+            <Share2 className="h-4 w-4" />
+            <span>Share</span>
+          </Button>
+        </div>
+        
+        {showComments && (
+          <div className="w-full mt-4">
+            <Separator className="my-4" />
+            
+            {/* Comment list */}
+            {post.comments && post.comments.length > 0 ? (
+              <div className="space-y-4 mb-4">
+                {post.comments.map((comment) => (
+                  <div key={comment.id} className="flex space-x-3">
+                    <Avatar className="h-8 w-8">
+                      <AvatarImage src={comment.user?.avatar_url} />
+                      <AvatarFallback>
+                        <User className="h-4 w-4" />
+                      </AvatarFallback>
+                    </Avatar>
+                    <div className="flex-1">
+                      <div className="bg-muted p-3 rounded-lg">
+                        <div className="flex justify-between">
+                          <h4 className="text-sm font-semibold">{comment.user?.name || 'Anonymous User'}</h4>
+                          <span className="text-xs text-muted-foreground">{formatDate(comment.created_at)}</span>
+                        </div>
+                        <p className="text-sm mt-1">{comment.content}</p>
+                      </div>
+                    </div>
+                  </div>
+                ))}
+              </div>
+            ) : (
+              <p className="text-center text-muted-foreground py-4">No comments yet. Be the first to comment!</p>
+            )}
+            
+            {/* Comment input */}
+            <div className="flex flex-col space-y-2 mt-2">
+              <Textarea
+                placeholder="Write a comment..."
+                value={newComment}
+                onChange={(e) => setNewComment(e.target.value)}
+                className="min-h-[80px]"
               />
-              <Button size="sm">Post</Button>
+              
+              {commentAttachments.length > 0 && (
+                <div className="flex flex-wrap gap-2 mt-2">
+                  {commentAttachments.map((url, idx) => (
+                    <div key={idx} className="relative h-16 w-16 rounded overflow-hidden border">
+                      <img src={url} alt={`Upload ${idx}`} className="h-full w-full object-cover" />
+                    </div>
+                  ))}
+                </div>
+              )}
+              
+              <div className="flex justify-between items-center">
+                <div className="flex items-center space-x-2">
+                  <FileUpload
+                    onFilesSelected={handleCommentFileUpload}
+                    accept="image/*"
+                    multiple
+                    buttonProps={{
+                      variant: "ghost",
+                      className: "h-8 w-8 p-0"
+                    }}
+                  >
+                    <Paperclip className="h-4 w-4" />
+                  </FileUpload>
+                </div>
+                
+                <Button 
+                  size="sm"
+                  disabled={isSubmittingComment || (!newComment.trim() && commentAttachments.length === 0)}
+                  onClick={handleSubmitComment}
+                >
+                  <Send className="h-4 w-4 mr-2" />
+                  Comment
+                </Button>
+              </div>
             </div>
           </div>
-        </div>
-      )}
+        )}
+      </CardFooter>
     </Card>
   );
 };
