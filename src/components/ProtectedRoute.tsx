@@ -1,6 +1,5 @@
 
 import { ReactNode } from 'react';
-import { useAuth } from '@/contexts/AuthContext';
 
 interface ProtectedRouteProps {
   children: ReactNode;
@@ -8,12 +7,9 @@ interface ProtectedRouteProps {
 }
 
 const ProtectedRoute = ({ 
-  children, 
-  requiredRole
+  children
 }: ProtectedRouteProps) => {
-  const { profile } = useAuth();
-  
-  // Allow access to all users, regardless of authentication status
+  // No auth check needed, all users are allowed access
   return <>{children}</>;
 };
 

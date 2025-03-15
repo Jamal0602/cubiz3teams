@@ -3,19 +3,19 @@ import React, { useState } from 'react';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
 import { Input } from '@/components/ui/input';
 import { Button } from '@/components/ui/button';
-import { useAuth } from '@/contexts/AuthContext';
 import { 
   FileText, Upload, FolderOpen, Search, 
   Share2, FilePlus, Trash2, Download,
-  FileIcon, Image, File, Video, Music
+  Image, File, Video
 } from 'lucide-react';
 import { toast } from 'sonner';
+import { useIsMobile } from '@/hooks/use-mobile';
 
 const Files = () => {
-  const { profile } = useAuth();
   const [searchTerm, setSearchTerm] = useState('');
   const [selectedFiles, setSelectedFiles] = useState<string[]>([]);
   const [view, setView] = useState<'grid' | 'list'>('grid');
+  const isMobile = useIsMobile();
   
   // Demo files data - would be fetched from Supabase in a real implementation
   const files = [
@@ -30,15 +30,15 @@ const Files = () => {
   const getFileIcon = (type: string) => {
     switch(type) {
       case 'document':
-        return <FileText className="h-6 w-6 text-blue-500" />;
+        return <FileText className="h-5 w-5 sm:h-6 sm:w-6 text-blue-500" />;
       case 'image':
-        return <Image className="h-6 w-6 text-green-500" />;
+        return <Image className="h-5 w-5 sm:h-6 sm:w-6 text-green-500" />;
       case 'spreadsheet':
-        return <FileText className="h-6 w-6 text-emerald-500" />;
+        return <FileText className="h-5 w-5 sm:h-6 sm:w-6 text-emerald-500" />;
       case 'video':
-        return <Video className="h-6 w-6 text-red-500" />;
+        return <Video className="h-5 w-5 sm:h-6 sm:w-6 text-red-500" />;
       default:
-        return <File className="h-6 w-6 text-gray-500" />;
+        return <File className="h-5 w-5 sm:h-6 sm:w-6 text-gray-500" />;
     }
   };
   
@@ -88,83 +88,90 @@ const Files = () => {
   };
 
   return (
-    <div className="container mx-auto p-4">
-      <h1 className="text-3xl font-bold mb-6">File Sharing</h1>
+    <div className="container mx-auto p-2 sm:p-4">
+      <h1 className="text-xl sm:text-3xl font-bold mb-4 sm:mb-6">File Sharing</h1>
       
-      <div className="flex flex-col sm:flex-row justify-between items-start sm:items-center mb-6 gap-4">
+      <div className="flex flex-col sm:flex-row justify-between items-start sm:items-center mb-4 sm:mb-6 gap-2 sm:gap-4">
         <div className="relative w-full sm:w-64 md:w-80">
-          <Search className="absolute left-2.5 top-2.5 h-4 w-4 text-muted-foreground" />
+          <Search className="absolute left-2 sm:left-2.5 top-2 sm:top-2.5 h-3 w-3 sm:h-4 sm:w-4 text-muted-foreground" />
           <Input
             type="search"
             placeholder="Search files..."
-            className="pl-8"
+            className="pl-7 sm:pl-8 text-xs sm:text-sm h-8 sm:h-10"
             value={searchTerm}
             onChange={(e) => setSearchTerm(e.target.value)}
           />
         </div>
         
-        <div className="flex gap-2 w-full sm:w-auto">
-          <Button onClick={handleFileUpload} className="flex-1 sm:flex-none">
-            <Upload className="mr-2 h-4 w-4" />
+        <div className="flex gap-2 w-full sm:w-auto mt-2 sm:mt-0">
+          <Button 
+            onClick={handleFileUpload} 
+            className="flex-1 sm:flex-none text-xs sm:text-sm h-8 sm:h-10 px-2 sm:px-4"
+          >
+            <Upload className="mr-1 sm:mr-2 h-3 w-3 sm:h-4 sm:w-4" />
             Upload
           </Button>
-          <Button variant="outline" onClick={handleCreateFolder} className="flex-1 sm:flex-none">
-            <FolderOpen className="mr-2 h-4 w-4" />
-            New Folder
+          <Button 
+            variant="outline" 
+            onClick={handleCreateFolder} 
+            className="flex-1 sm:flex-none text-xs sm:text-sm h-8 sm:h-10 px-2 sm:px-4"
+          >
+            <FolderOpen className="mr-1 sm:mr-2 h-3 w-3 sm:h-4 sm:w-4" />
+            {isMobile ? "New" : "New Folder"}
           </Button>
         </div>
       </div>
       
       {selectedFiles.length > 0 && (
-        <div className="flex items-center gap-2 mb-4 p-2 bg-muted rounded">
-          <span className="text-sm">{selectedFiles.length} selected</span>
+        <div className="flex items-center gap-1 sm:gap-2 mb-3 sm:mb-4 p-1 sm:p-2 bg-muted rounded text-xs sm:text-sm">
+          <span>{selectedFiles.length} selected</span>
           <div className="flex-1"></div>
-          <Button size="sm" variant="outline" onClick={handleDownload}>
-            <Download className="mr-2 h-4 w-4" />
-            Download
+          <Button size="sm" variant="outline" onClick={handleDownload} className="h-7 sm:h-8 px-2 sm:px-3 text-xs">
+            <Download className="mr-1 sm:mr-2 h-3 w-3 sm:h-4 sm:w-4" />
+            {!isMobile && "Download"}
           </Button>
-          <Button size="sm" variant="outline" onClick={handleShare}>
-            <Share2 className="mr-2 h-4 w-4" />
-            Share
+          <Button size="sm" variant="outline" onClick={handleShare} className="h-7 sm:h-8 px-2 sm:px-3 text-xs">
+            <Share2 className="mr-1 sm:mr-2 h-3 w-3 sm:h-4 sm:w-4" />
+            {!isMobile && "Share"}
           </Button>
-          <Button size="sm" variant="destructive" onClick={handleDelete}>
-            <Trash2 className="mr-2 h-4 w-4" />
-            Delete
+          <Button size="sm" variant="destructive" onClick={handleDelete} className="h-7 sm:h-8 px-2 sm:px-3 text-xs">
+            <Trash2 className="mr-1 sm:mr-2 h-3 w-3 sm:h-4 sm:w-4" />
+            {!isMobile && "Delete"}
           </Button>
         </div>
       )}
       
       <Card>
-        <CardHeader className="pb-2">
-          <CardTitle>Your Files</CardTitle>
-          <CardDescription>
+        <CardHeader className="pb-2 px-3 sm:px-6 py-3 sm:py-4">
+          <CardTitle className="text-base sm:text-lg">Your Files</CardTitle>
+          <CardDescription className="text-xs sm:text-sm">
             Manage and share your files with team members
           </CardDescription>
         </CardHeader>
-        <CardContent>
+        <CardContent className="px-3 sm:px-6 py-2 sm:py-4">
           {filteredFiles.length > 0 ? (
-            <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
+            <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-3 sm:gap-4">
               {filteredFiles.map(file => (
                 <div 
                   key={file.id} 
-                  className={`p-4 border rounded-lg hover:border-primary cursor-pointer transition-all ${
+                  className={`p-3 sm:p-4 border rounded-lg hover:border-primary cursor-pointer transition-all ${
                     selectedFiles.includes(file.id) ? 'border-primary bg-primary/5' : ''
                   }`}
                   onClick={() => handleFileSelection(file.id)}
                 >
-                  <div className="flex items-start gap-3">
+                  <div className="flex items-start gap-2 sm:gap-3">
                     {getFileIcon(file.type)}
                     <div className="flex-1 min-w-0">
-                      <p className="font-medium truncate">{file.name}</p>
+                      <p className="font-medium truncate text-sm sm:text-base">{file.name}</p>
                       <div className="flex items-center justify-between mt-1">
                         <span className="text-xs text-muted-foreground">{file.size}</span>
                         <span className="text-xs text-muted-foreground">{file.created}</span>
                       </div>
-                      <div className="flex items-center justify-between mt-2">
+                      <div className="flex items-center justify-between mt-1 sm:mt-2">
                         <span className="text-xs">{file.owner}</span>
                         {file.shared && (
                           <span className="text-xs flex items-center text-blue-500">
-                            <Share2 className="h-3 w-3 mr-1" /> Shared
+                            <Share2 className="h-2 w-2 sm:h-3 sm:w-3 mr-1" /> Shared
                           </span>
                         )}
                       </div>
@@ -174,14 +181,14 @@ const Files = () => {
               ))}
             </div>
           ) : (
-            <div className="text-center py-8">
-              <FilePlus className="h-12 w-12 mx-auto text-muted-foreground" />
-              <p className="mt-4 text-lg font-medium">No files found</p>
-              <p className="text-sm text-muted-foreground mt-1">
+            <div className="text-center py-6 sm:py-8">
+              <FilePlus className="h-8 w-8 sm:h-12 sm:w-12 mx-auto text-muted-foreground" />
+              <p className="mt-3 sm:mt-4 text-base sm:text-lg font-medium">No files found</p>
+              <p className="text-xs sm:text-sm text-muted-foreground mt-1">
                 {searchTerm ? 'Try a different search term' : 'Upload your first file to get started'}
               </p>
-              <Button className="mt-4" onClick={handleFileUpload}>
-                <Upload className="mr-2 h-4 w-4" />
+              <Button className="mt-3 sm:mt-4 text-xs sm:text-sm h-8 sm:h-10" onClick={handleFileUpload}>
+                <Upload className="mr-1 sm:mr-2 h-3 w-3 sm:h-4 sm:w-4" />
                 Upload File
               </Button>
             </div>

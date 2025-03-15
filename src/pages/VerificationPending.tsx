@@ -10,7 +10,11 @@ const VerificationPending = () => {
     navigate('/dashboard');
   }, [navigate]);
 
-  return null;
+  return (
+    <div className="flex items-center justify-center min-h-screen">
+      <p>Redirecting...</p>
+    </div>
+  );
 };
 
 export default VerificationPending;
