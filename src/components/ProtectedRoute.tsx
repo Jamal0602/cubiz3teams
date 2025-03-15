@@ -9,7 +9,7 @@ interface ProtectedRouteProps {
 const ProtectedRoute = ({ 
   children
 }: ProtectedRouteProps) => {
-  // No auth check needed, all users are allowed access
+  // All users allowed access with no restrictions
   return <>{children}</>;
 };
 

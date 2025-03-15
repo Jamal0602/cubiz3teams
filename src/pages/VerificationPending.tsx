@@ -1,20 +1,10 @@
 
 import React, { useEffect } from 'react';
-import { useNavigate } from 'react-router-dom';
+import { Navigate } from 'react-router-dom';
 
 const VerificationPending = () => {
-  const navigate = useNavigate();
-
-  // Immediately redirect to dashboard
-  useEffect(() => {
-    navigate('/dashboard');
-  }, [navigate]);
-
-  return (
-    <div className="flex items-center justify-center min-h-screen">
-      <p>Redirecting...</p>
-    </div>
-  );
+  // Simply render a redirect component - no need for useEffect
+  return <Navigate to="/dashboard" replace />;
 };
 
 export default VerificationPending;

@@ -35,6 +35,16 @@ interface Post {
   liked_by?: string[];
 }
 
+interface UpdatedPost {
+  id?: string;
+  content?: string;
+  created_by?: string;
+  created_at?: string;
+  attachments?: string[];
+  likes?: number;
+  liked_by?: string[];
+}
+
 interface Profile {
   id: string;
   full_name: string;
@@ -124,11 +134,12 @@ const CommunityPost: React.FC<CommunityPostProps> = ({ post, onUpdate, onDelete 
       
       // Call onUpdate to update parent component
       if (onUpdate) {
-        onUpdate({
+        const updatedPost: Post = {
           ...post,
           liked_by: updatedLikedBy,
           likes: newLikeCount
-        });
+        };
+        onUpdate(updatedPost);
       }
     } catch (error) {
       console.error('Error updating like:', error);
@@ -187,11 +198,12 @@ const CommunityPost: React.FC<CommunityPostProps> = ({ post, onUpdate, onDelete 
       
       // Call onUpdate to update parent component
       if (onUpdate) {
-        onUpdate({
+        const updatedPost: Post = {
           ...post,
           content: editedContent,
           attachments: updatedAttachments
-        });
+        };
+        onUpdate(updatedPost);
       }
       
       setIsEditing(false);
@@ -296,8 +308,10 @@ const CommunityPost: React.FC<CommunityPostProps> = ({ post, onUpdate, onDelete 
                 className: "w-full"
               }}
             >
-              <Paperclip className="h-4 w-4 mr-2" />
-              Attach Files
+              <div className="flex items-center">
+                <Paperclip className="h-4 w-4 mr-2" />
+                Attach Files
+              </div>
             </FileUpload>
             <div className="flex justify-end gap-2">
               <Button variant="outline" onClick={handleCancelEdit} disabled={isLoading}>
@@ -313,7 +327,7 @@ const CommunityPost: React.FC<CommunityPostProps> = ({ post, onUpdate, onDelete 
             <div className="mt-4 whitespace-pre-wrap">{post.content}</div>
             
             {attachments && attachments.length > 0 && (
-              <div className="mt-4 grid grid-cols-2 gap-2">
+              <div className="mt-4 grid grid-cols-1 sm:grid-cols-2 gap-2">
                 {attachments.map((url, index) => (
                   <a 
                     key={index} 
