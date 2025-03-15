@@ -1,390 +1,337 @@
-
-import React, { useState, useEffect } from 'react';
-import { Card, CardContent, CardFooter, CardHeader } from '@/components/ui/card';
-import { Button } from '@/components/ui/button';
-import { Textarea } from '@/components/ui/textarea';
+import React, { useState } from 'react';
 import { Avatar, AvatarFallback, AvatarImage } from '@/components/ui/avatar';
-import { useAuth } from '@/contexts/AuthContext';
-import { FileUpload } from '@/components/FileUpload';
-import { supabase } from '@/integrations/supabase/client';
-import { toast } from 'sonner';
-import { MessageSquare, ThumbsUp, Share2, Flag, Loader2 } from 'lucide-react';
-import { Badge } from '@/components/ui/badge';
+import { Button } from '@/components/ui/button';
+import { Card, CardContent, CardFooter, CardHeader } from '@/components/ui/card';
+import { MessageSquare, Heart, Share2, MoreHorizontal, Image, Send, Paperclip, User } from 'lucide-react';
 import { Separator } from '@/components/ui/separator';
-import { CubeLoader } from '@/components/ui/cube-loader';
+import { Textarea } from '@/components/ui/textarea';
+import { DropdownMenu, DropdownMenuContent, DropdownMenuItem, DropdownMenuTrigger } from '@/components/ui/dropdown-menu';
+import { toast } from 'sonner';
+import { supabase } from '@/integrations/supabase/client';
+import { useAuth } from '@/contexts/AuthContext';
+import { FileUpload } from './FileUpload';
 
-export const CreatePost = ({ onPostCreated }: { onPostCreated?: () => void }) => {
+export interface Post {
+  id?: string;
+  content?: string;
+  created_at?: string;
+  created_by?: string;
+  attachments?: string[];
+  likes?: number;
+  comments?: Comment[];
+  user?: {
+    name: string;
+    avatar_url?: string;
+    role?: string;
+  };
+}
+
+interface Comment {
+  id: string;
+  content: string;
+  created_at: string;
+  created_by: string;
+  user?: {
+    name: string;
+    avatar_url?: string;
+  };
+}
+
+interface PostProps {
+  post: Post;
+  onUpdate?: (updatedPost: Post) => void;
+  onDelete?: (postId: string) => void;
+}
+
+const CommunityPost: React.FC<PostProps> = ({ post, onUpdate, onDelete }) => {
   const { user, profile } = useAuth();
-  const [content, setContent] = useState('');
-  const [attachments, setAttachments] = useState<string[]>([]);
-  const [isPosting, setIsPosting] = useState(false);
-  const [showAttachments, setShowAttachments] = useState(false);
-  const [isOffline, setIsOffline] = useState(!navigator.onLine);
-
-  // Track online/offline status
-  React.useEffect(() => {
-    const handleOnline = () => setIsOffline(false);
-    const handleOffline = () => setIsOffline(true);
+  const [showComments, setShowComments] = useState(false);
+  const [newComment, setNewComment] = useState('');
+  const [commentAttachments, setCommentAttachments] = useState<string[]>([]);
+  const [isSubmittingComment, setIsSubmittingComment] = useState(false);
+  
+  const formatDate = (dateString?: string) => {
+    if (!dateString) return '';
     
-    window.addEventListener('online', handleOnline);
-    window.addEventListener('offline', handleOffline);
-    
-    return () => {
-      window.removeEventListener('online', handleOnline);
-      window.removeEventListener('offline', handleOffline);
-    };
-  }, []);
-
-  const handleSubmit = async () => {
-    if (!content.trim()) {
-      toast.error('Please enter some content for your post');
-      return;
-    }
-    
+    const date = new Date(dateString);
+    return new Intl.DateTimeFormat('en-US', {
+      month: 'short',
+      day: 'numeric',
+      hour: '2-digit',
+      minute: '2-digit'
+    }).format(date);
+  };
+  
+  const handleLike = async () => {
     if (!user) {
-      toast.error('You must be logged in to create a post');
-      return;
-    }
-    
-    setIsPosting(true);
-    
-    // If offline, save to local storage for later posting
-    if (isOffline) {
-      const pendingPost = {
-        content,
-        attachments,
-        timestamp: new Date().toISOString()
-      };
-      
-      const pendingPosts = JSON.parse(localStorage.getItem('pendingPosts') || '[]');
-      localStorage.setItem('pendingPosts', JSON.stringify([...pendingPosts, pendingPost]));
-      
-      toast.info('You are offline. Your post will be published when you reconnect.');
-      setContent('');
-      setAttachments([]);
-      setIsPosting(false);
+      toast.error('You need to be logged in to like posts');
       return;
     }
     
     try {
-      const { data, error } = await supabase
-        .from('community_posts')
-        .insert({
-          content,
-          attachments,
-          created_by: user.id
-        })
-        .select()
-        .single();
+      const updatedPost = {
+        ...post,
+        likes: (post.likes || 0) + 1
+      };
       
-      if (error) throw error;
-      
-      toast.success('Post created successfully!');
-      setContent('');
-      setAttachments([]);
-      
-      if (onPostCreated) {
-        onPostCreated();
+      if (onUpdate) {
+        onUpdate(updatedPost);
       }
-    } catch (error: any) {
-      console.error('Error creating post:', error);
-      toast.error(error.message || 'An error occurred while creating your post');
-    } finally {
-      setIsPosting(false);
+      
+      toast.success('Post liked!');
+    } catch (error) {
+      console.error('Error liking post:', error);
+      toast.error('Failed to like the post');
     }
   };
-
-  const handleAttachmentSuccess = (filePath: string, fileData: any) => {
-    setAttachments(prev => [...prev, fileData.url]);
+  
+  const handleSubmitComment = async () => {
+    if (!newComment.trim() && commentAttachments.length === 0) {
+      toast.error('Comment cannot be empty');
+      return;
+    }
+    
+    if (!user) {
+      toast.error('You need to be logged in to comment');
+      return;
+    }
+    
+    setIsSubmittingComment(true);
+    
+    try {
+      const newCommentObj: Comment = {
+        id: Date.now().toString(),
+        content: newComment,
+        created_at: new Date().toISOString(),
+        created_by: user.id,
+        user: {
+          name: profile?.full_name || 'Anonymous User',
+          avatar_url: profile?.avatar_url
+        }
+      };
+      
+      const updatedPost = {
+        ...post,
+        comments: [...(post.comments || []), newCommentObj]
+      };
+      
+      if (onUpdate) {
+        onUpdate(updatedPost);
+      }
+      
+      setNewComment('');
+      setCommentAttachments([]);
+      toast.success('Comment added!');
+    } catch (error) {
+      console.error('Error adding comment:', error);
+      toast.error('Failed to add the comment');
+    } finally {
+      setIsSubmittingComment(false);
+    }
   };
-
+  
+  const handleCommentFileUpload = (files: File[]) => {
+    const newAttachments = files.map(file => URL.createObjectURL(file));
+    setCommentAttachments([...commentAttachments, ...newAttachments]);
+    toast.success(`${files.length} file(s) attached to your comment`);
+  };
+  
+  const handleShare = () => {
+    if (navigator.share) {
+      navigator.share({
+        title: 'Check out this post on Teamz',
+        text: post.content || 'Shared from Teamz',
+        url: window.location.href
+      })
+      .then(() => toast.success('Post shared successfully'))
+      .catch((error) => console.error('Error sharing:', error));
+    } else {
+      navigator.clipboard.writeText(window.location.href)
+        .then(() => toast.success('Link copied to clipboard'))
+        .catch(() => toast.error('Failed to copy link'));
+    }
+  };
+  
   return (
-    <Card className="mb-6">
-      <CardHeader className="pb-2">
-        <div className="flex items-center gap-3">
-          <Avatar>
-            <AvatarImage src={profile?.avatar_url || undefined} />
-            <AvatarFallback>{profile?.full_name?.substring(0, 2).toUpperCase()}</AvatarFallback>
+    <Card className="mb-6 shadow-sm">
+      <CardHeader className="flex flex-row items-start justify-between space-y-0 pt-6">
+        <div className="flex space-x-4">
+          <Avatar className="h-10 w-10">
+            <AvatarImage src={post.user?.avatar_url} />
+            <AvatarFallback>
+              <User className="h-5 w-5" />
+            </AvatarFallback>
           </Avatar>
           <div>
-            <p className="font-medium">{profile?.full_name}</p>
-            <p className="text-xs text-muted-foreground">{profile?.cubiz_id}</p>
+            <h3 className="font-semibold">{post.user?.name || 'Anonymous User'}</h3>
+            <p className="text-sm text-muted-foreground">{formatDate(post.created_at)}</p>
+            {post.user?.role && (
+              <span className="inline-block text-xs bg-primary/10 text-primary rounded-full px-2 py-0.5 mt-1">
+                {post.user.role}
+              </span>
+            )}
           </div>
         </div>
+        
+        <DropdownMenu>
+          <DropdownMenuTrigger asChild>
+            <Button variant="ghost" size="icon">
+              <MoreHorizontal className="h-5 w-5" />
+            </Button>
+          </DropdownMenuTrigger>
+          <DropdownMenuContent align="end">
+            <DropdownMenuItem onClick={() => navigator.clipboard.writeText(post.content || '')}>
+              Copy text
+            </DropdownMenuItem>
+            <DropdownMenuItem onClick={handleShare}>
+              Share
+            </DropdownMenuItem>
+            {user && user.id === post.created_by && (
+              <DropdownMenuItem 
+                className="text-destructive focus:text-destructive"
+                onClick={() => toast.info('Delete functionality would go here')}
+              >
+                Delete
+              </DropdownMenuItem>
+            )}
+          </DropdownMenuContent>
+        </DropdownMenu>
       </CardHeader>
+      
       <CardContent>
-        <Textarea
-          placeholder="Share something with the community..."
-          className="min-h-20 mb-2"
-          value={content}
-          onChange={(e) => setContent(e.target.value)}
-        />
+        <p className="whitespace-pre-wrap">{post.content}</p>
         
-        {showAttachments && (
-          <div className="mt-4">
-            <FileUpload 
-              onSuccess={handleAttachmentSuccess}
-              allowedTypes={['image/jpeg', 'image/png', 'image/gif']}
-              folder="community_posts"
-              buttonText="Upload Image"
-            />
-          </div>
-        )}
-        
-        {attachments.length > 0 && (
-          <div className="grid grid-cols-1 gap-2 mt-3">
-            {attachments.map((url, index) => (
-              <div key={index} className="relative">
+        {post.attachments && post.attachments.length > 0 && (
+          <div className="mt-4 grid grid-cols-2 gap-2">
+            {post.attachments.map((attachment, idx) => (
+              <div 
+                key={idx} 
+                className="relative rounded-md overflow-hidden aspect-video bg-muted flex items-center justify-center"
+              >
                 <img 
-                  src={url} 
-                  alt="Attachment" 
-                  className="rounded-md max-h-96 object-contain border" 
+                  src={attachment} 
+                  alt={`Attachment ${idx + 1}`} 
+                  className="object-cover w-full h-full" 
                 />
-                <Button 
-                  variant="destructive" 
-                  size="icon" 
-                  className="absolute top-2 right-2 h-6 w-6"
-                  onClick={() => setAttachments(prev => prev.filter((_, i) => i !== index))}
-                >
-                  <Flag className="h-3 w-3" />
-                </Button>
               </div>
             ))}
           </div>
         )}
+      </CardContent>
+      
+      <CardFooter className="flex flex-col">
+        <div className="flex items-center justify-between w-full">
+          <div className="flex space-x-4">
+            <Button 
+              variant="ghost" 
+              size="sm" 
+              className="flex items-center space-x-2" 
+              onClick={handleLike}
+            >
+              <Heart className="h-4 w-4" />
+              <span>{post.likes || 0}</span>
+            </Button>
+            
+            <Button 
+              variant="ghost" 
+              size="sm" 
+              className="flex items-center space-x-2" 
+              onClick={() => setShowComments(!showComments)}
+            >
+              <MessageSquare className="h-4 w-4" />
+              <span>{post.comments?.length || 0}</span>
+            </Button>
+          </div>
+          
+          <Button 
+            variant="ghost" 
+            size="sm" 
+            className="flex items-center space-x-2" 
+            onClick={handleShare}
+          >
+            <Share2 className="h-4 w-4" />
+            <span>Share</span>
+          </Button>
+        </div>
         
-        {isOffline && (
-          <div className="bg-yellow-500/10 text-yellow-700 dark:text-yellow-300 p-3 rounded-md mt-2 text-sm">
-            You're offline. Your post will be saved locally and published when you reconnect.
+        {showComments && (
+          <div className="w-full mt-4">
+            <Separator className="my-4" />
+            
+            {post.comments && post.comments.length > 0 ? (
+              <div className="space-y-4 mb-4">
+                {post.comments.map((comment) => (
+                  <div key={comment.id} className="flex space-x-3">
+                    <Avatar className="h-8 w-8">
+                      <AvatarImage src={comment.user?.avatar_url} />
+                      <AvatarFallback>
+                        <User className="h-4 w-4" />
+                      </AvatarFallback>
+                    </Avatar>
+                    <div className="flex-1">
+                      <div className="bg-muted p-3 rounded-lg">
+                        <div className="flex justify-between">
+                          <h4 className="text-sm font-semibold">{comment.user?.name || 'Anonymous User'}</h4>
+                          <span className="text-xs text-muted-foreground">{formatDate(comment.created_at)}</span>
+                        </div>
+                        <p className="text-sm mt-1">{comment.content}</p>
+                      </div>
+                    </div>
+                  </div>
+                ))}
+              </div>
+            ) : (
+              <p className="text-center text-muted-foreground py-4">No comments yet. Be the first to comment!</p>
+            )}
+            
+            <div className="flex flex-col space-y-2 mt-2">
+              <Textarea
+                placeholder="Write a comment..."
+                value={newComment}
+                onChange={(e) => setNewComment(e.target.value)}
+                className="min-h-[80px]"
+              />
+              
+              {commentAttachments.length > 0 && (
+                <div className="flex flex-wrap gap-2 mt-2">
+                  {commentAttachments.map((url, idx) => (
+                    <div key={idx} className="relative h-16 w-16 rounded overflow-hidden border">
+                      <img src={url} alt={`Upload ${idx}`} className="h-full w-full object-cover" />
+                    </div>
+                  ))}
+                </div>
+              )}
+              
+              <div className="flex justify-between items-center">
+                <div className="flex items-center space-x-2">
+                  <FileUpload
+                    onFilesSelected={handleCommentFileUpload}
+                    accept="image/*"
+                    multiple
+                    buttonProps={{
+                      variant: "ghost",
+                      className: "h-8 w-8 p-0"
+                    }}
+                  >
+                    <Paperclip className="h-4 w-4" />
+                  </FileUpload>
+                </div>
+                
+                <Button 
+                  size="sm"
+                  disabled={isSubmittingComment || (!newComment.trim() && commentAttachments.length === 0)}
+                  onClick={handleSubmitComment}
+                >
+                  <Send className="h-4 w-4 mr-2" />
+                  Comment
+                </Button>
+              </div>
+            </div>
           </div>
         )}
-      </CardContent>
-      <CardFooter className="flex justify-between">
-        <Button 
-          variant="outline" 
-          onClick={() => setShowAttachments(!showAttachments)}
-        >
-          {showAttachments ? 'Hide Attachments' : 'Add Attachment'}
-        </Button>
-        <Button 
-          onClick={handleSubmit} 
-          disabled={!content.trim() || isPosting}
-        >
-          {isPosting ? (
-            <>
-              <Loader2 className="mr-2 h-4 w-4 animate-spin" />
-              Posting...
-            </>
-          ) : isOffline ? 'Save Draft' : 'Post'}
-        </Button>
       </CardFooter>
     </Card>
   );
 };
 
-export const PostList = () => {
-  const { user } = useAuth();
-  const [posts, setPosts] = useState<any[]>([]);
-  const [loading, setLoading] = useState(true);
-  const [profiles, setProfiles] = useState<{[key: string]: any}>({});
-  
-  useEffect(() => {
-    if (user) {
-      refreshPosts();
-    }
-  }, [user]);
-  
-  const refreshPosts = async () => {
-    try {
-      setLoading(true);
-      
-      // Fetch posts
-      const { data: postData, error: postError } = await supabase
-        .from('community_posts')
-        .select('*')
-        .order('created_at', { ascending: false });
-      
-      if (postError) throw postError;
-      
-      // Get unique user IDs from posts
-      const userIds = [...new Set(postData?.map(post => post.created_by) || [])];
-      
-      // Fetch user profiles
-      const { data: profileData, error: profileError } = await supabase
-        .from('profiles')
-        .select('id, full_name, cubiz_id, avatar_url')
-        .in('id', userIds);
-      
-      if (profileError) throw profileError;
-      
-      // Create a map of user profiles
-      const profileMap = profileData?.reduce((acc, profile) => {
-        acc[profile.id] = profile;
-        return acc;
-      }, {} as {[key: string]: any}) || {};
-      
-      setProfiles(profileMap);
-      setPosts(postData || []);
-    } catch (error) {
-      console.error('Error fetching posts:', error);
-      toast.error('Failed to load posts');
-    } finally {
-      setLoading(false);
-    }
-  };
-  
-  const handleLike = async (postId: string) => {
-    if (!user) return;
-    
-    try {
-      // Get the current post
-      const { data: post, error: getError } = await supabase
-        .from('community_posts')
-        .select('*')
-        .eq('id', postId)
-        .single();
-      
-      if (getError) throw getError;
-      
-      // Initialize liked_by and likes if they don't exist (for backward compatibility)
-      const likedBy = post.liked_by || [];
-      const hasLiked = Array.isArray(likedBy) && likedBy.includes(user.id);
-      
-      // Toggle like status
-      const newLikedBy = hasLiked
-        ? likedBy.filter((id: string) => id !== user.id)
-        : [...likedBy, user.id];
-      
-      const newLikes = hasLiked ? (post.likes || 1) - 1 : (post.likes || 0) + 1;
-      
-      // Update the post
-      const { error: updateError } = await supabase
-        .from('community_posts')
-        .update({
-          likes: newLikes,
-          liked_by: newLikedBy
-        })
-        .eq('id', postId);
-      
-      if (updateError) throw updateError;
-      
-      // Update the local state
-      setPosts(posts.map(p => 
-        p.id === postId 
-          ? { ...p, likes: newLikes, liked_by: newLikedBy }
-          : p
-      ));
-    } catch (error) {
-      console.error('Error liking post:', error);
-      toast.error('Failed to like post');
-    }
-  };
-  
-  if (loading) {
-    return (
-      <div className="space-y-4">
-        {[1, 2, 3].map((i) => (
-          <Card key={i} className="animate-pulse">
-            <CardHeader className="pb-2">
-              <div className="flex items-center gap-3">
-                <div className="h-10 w-10 rounded-full bg-muted" />
-                <div className="space-y-2">
-                  <div className="h-4 w-24 bg-muted rounded" />
-                  <div className="h-3 w-32 bg-muted rounded" />
-                </div>
-              </div>
-            </CardHeader>
-            <CardContent>
-              <div className="h-20 bg-muted rounded" />
-            </CardContent>
-            <CardFooter>
-              <div className="h-8 w-full bg-muted rounded" />
-            </CardFooter>
-          </Card>
-        ))}
-      </div>
-    );
-  }
-  
-  return (
-    <div className="space-y-6">
-      <CreatePost onPostCreated={refreshPosts} />
-      
-      {posts.length === 0 ? (
-        <Card className="py-12">
-          <div className="text-center">
-            <MessageSquare className="mx-auto h-12 w-12 text-muted-foreground mb-4 opacity-50" />
-            <h3 className="text-lg font-medium">No posts yet</h3>
-            <p className="text-muted-foreground mt-2">Be the first to share something with the community!</p>
-          </div>
-        </Card>
-      ) : (
-        posts.map((post) => {
-          const postCreator = profiles[post.created_by] || {};
-          const hasLiked = Array.isArray(post.liked_by) && post.liked_by?.includes(user?.id);
-          
-          return (
-            <Card key={post.id} className="overflow-hidden">
-              <CardHeader className="pb-2">
-                <div className="flex items-center gap-3">
-                  <Avatar>
-                    <AvatarImage src={postCreator?.avatar_url || undefined} />
-                    <AvatarFallback>{postCreator?.full_name?.substring(0, 2).toUpperCase()}</AvatarFallback>
-                  </Avatar>
-                  <div>
-                    <p className="font-medium">{postCreator?.full_name || 'Unknown User'}</p>
-                    <p className="text-xs text-muted-foreground">
-                      {postCreator?.cubiz_id || 'unknown'} • {new Date(post.created_at).toLocaleString()}
-                    </p>
-                  </div>
-                </div>
-              </CardHeader>
-              <CardContent>
-                <div className="whitespace-pre-wrap mb-4">{post.content}</div>
-                
-                {post.attachments && post.attachments.length > 0 && (
-                  <div className="grid grid-cols-1 gap-2 mt-3">
-                    {post.attachments.map((url: string, index: number) => (
-                      <img 
-                        key={index} 
-                        src={url} 
-                        alt="Post attachment" 
-                        className="rounded-md max-h-96 object-contain" 
-                      />
-                    ))}
-                  </div>
-                )}
-              </CardContent>
-              <CardFooter className="border-t bg-muted/30 px-2">
-                <div className="flex w-full gap-1">
-                  <Button 
-                    variant="ghost" 
-                    size="sm" 
-                    className="flex-1"
-                    onClick={() => handleLike(post.id)}
-                  >
-                    <ThumbsUp 
-                      className={`h-4 w-4 mr-1 ${hasLiked ? 'fill-primary text-primary' : ''}`} 
-                    />
-                    {post.likes || 0} {post.likes === 1 ? 'Like' : 'Likes'}
-                  </Button>
-                  <Button variant="ghost" size="sm" className="flex-1">
-                    <MessageSquare className="h-4 w-4 mr-1" />
-                    Comment
-                  </Button>
-                  <Button variant="ghost" size="sm" className="flex-1">
-                    <Share2 className="h-4 w-4 mr-1" />
-                    Share
-                  </Button>
-                  <Button variant="ghost" size="sm" className="h-8 w-8 p-0">
-                    <Flag className="h-4 w-4" />
-                  </Button>
-                </div>
-              </CardFooter>
-            </Card>
-          );
-        })
-      )}
-    </div>
-  );
-};
+export default CommunityPost;
