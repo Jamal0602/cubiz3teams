@@ -2,12 +2,13 @@
 import React, { useState, useEffect } from 'react';
 import { useAuth } from '@/contexts/AuthContext';
 import { supabase } from '@/integrations/supabase/client';
-import { Card, CardContent } from '@/components/ui/card';
+import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
-import { Check, Bell } from 'lucide-react';
+import { Check, Bell, X, Info, AlertTriangle, Clock, CheckCircle } from 'lucide-react';
+import { Badge } from '@/components/ui/badge';
+import { Separator } from '@/components/ui/separator';
 import { toast } from 'sonner';
 import { CubeLoader } from '@/components/ui/cube-loader';
-import NotificationItem from '@/components/NotificationItem';
 
 const Notifications = () => {
   const { user } = useAuth();
@@ -15,7 +16,9 @@ const Notifications = () => {
   const [loading, setLoading] = useState(true);
 
   useEffect(() => {
-    fetchNotifications();
+    if (user) {
+      fetchNotifications();
+    }
   }, [user]);
 
   const fetchNotifications = async () => {
@@ -36,6 +39,7 @@ const Notifications = () => {
             created_at
           )
         `)
+        .eq('user_id', user?.id)
         .order('created_at', { ascending: false });
       
       if (error) throw error;
@@ -99,6 +103,31 @@ const Notifications = () => {
     }
   };
 
+  const getNotificationIcon = (type: string) => {
+    switch (type) {
+      case 'info':
+        return <Info className="h-5 w-5 text-blue-500" />;
+      case 'warning':
+        return <AlertTriangle className="h-5 w-5 text-orange-500" />;
+      case 'success':
+        return <CheckCircle className="h-5 w-5 text-green-500" />;
+      case 'error':
+        return <X className="h-5 w-5 text-red-500" />;
+      default:
+        return <Bell className="h-5 w-5 text-purple-500" />;
+    }
+  };
+
+  const formatDate = (dateString: string) => {
+    const date = new Date(dateString);
+    return date.toLocaleDateString('en-US', {
+      month: 'short',
+      day: 'numeric',
+      hour: '2-digit',
+      minute: '2-digit'
+    });
+  };
+
   if (loading) {
     return (
       <div className="container mx-auto px-4 py-8">
@@ -142,11 +171,52 @@ const Notifications = () => {
       ) : (
         <div className="space-y-4">
           {notifications.map((notification) => (
-            <NotificationItem 
+            <Card 
               key={notification.id} 
-              notification={notification} 
-              onMarkAsRead={markAsRead} 
-            />
+              className={`transition-colors ${!notification.read ? 'bg-primary-foreground/10' : ''}`}
+            >
+              <CardContent className="p-4 sm:p-6">
+                <div className="flex items-start gap-4">
+                  <div className="rounded-full p-2 bg-muted">
+                    {getNotificationIcon(notification.notification?.type || 'default')}
+                  </div>
+                  
+                  <div className="flex-1">
+                    <div className="flex justify-between items-start mb-1">
+                      <h3 className="font-semibold text-lg">
+                        {notification.notification?.title || 'Notification'}
+                      </h3>
+                      <div className="flex items-center gap-2">
+                        <Badge variant="outline" className="text-xs">
+                          <Clock className="h-3 w-3 mr-1" />
+                          {formatDate(notification.created_at)}
+                        </Badge>
+                        
+                        {!notification.read && (
+                          <Badge className="bg-primary text-primary-foreground">New</Badge>
+                        )}
+                      </div>
+                    </div>
+                    
+                    <p className="text-muted-foreground mb-3">
+                      {notification.notification?.content || 'No content'}
+                    </p>
+                    
+                    {!notification.read && (
+                      <Button 
+                        variant="ghost" 
+                        size="sm" 
+                        onClick={() => markAsRead(notification.id)}
+                        className="mt-2"
+                      >
+                        <Check className="h-4 w-4 mr-1" />
+                        Mark as Read
+                      </Button>
+                    )}
+                  </div>
+                </div>
+              </CardContent>
+            </Card>
           ))}
         </div>
       )}
