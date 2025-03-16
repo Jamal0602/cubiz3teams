@@ -15,7 +15,7 @@ const PublicLayout: React.FC = () => {
   return (
     <div className="min-h-screen w-full bg-background flex flex-col">
       {!hideNavbar && (
-        <nav className="border-b bg-background/80 backdrop-blur-sm z-10">
+        <nav className="border-b bg-background/80 backdrop-blur-sm sticky top-0 z-10">
           <div className="container mx-auto flex items-center justify-between h-16 px-4">
             <div className="flex items-center gap-2">
               <div className="w-10 h-10 rounded-lg bg-primary flex items-center justify-center text-primary-foreground font-bold text-2xl">

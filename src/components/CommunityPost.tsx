@@ -190,7 +190,7 @@ const CommunityPost: React.FC<PostProps> = ({ post, onUpdate, onDelete }) => {
             {user && user.id === post.created_by && (
               <DropdownMenuItem 
                 className="text-destructive focus:text-destructive"
-                onClick={() => toast.info('Delete functionality would go here')}
+                onClick={() => onDelete && post.id ? onDelete(post.id) : null}
               >
                 Delete
               </DropdownMenuItem>

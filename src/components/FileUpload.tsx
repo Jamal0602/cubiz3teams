@@ -1,5 +1,5 @@
 
-import React, { useState } from 'react';
+import React, { useState, ReactNode } from 'react';
 import { useAuth } from '@/contexts/AuthContext';
 import { supabase } from '@/integrations/supabase/client';
 import { Button } from '@/components/ui/button';
@@ -14,6 +14,7 @@ export interface FileUploadProps {
   folder: string;
   buttonText?: string;
   buttonSize?: 'sm' | 'default' | 'lg' | null;
+  children?: ReactNode;
 }
 
 export const FileUpload: React.FC<FileUploadProps> = ({
@@ -21,7 +22,8 @@ export const FileUpload: React.FC<FileUploadProps> = ({
   allowedTypes,
   folder,
   buttonText = "Upload File",
-  buttonSize = "default"
+  buttonSize = "default",
+  children
 }) => {
   const { user } = useAuth();
   const [file, setFile] = useState<File | null>(null);
@@ -56,12 +58,20 @@ export const FileUpload: React.FC<FileUploadProps> = ({
     try {
       setUploading(true);
       
+      // Check if the bucket exists and create it if not
+      const { error: bucketError } = await supabase.storage.getBucket(folder);
+      if (bucketError && bucketError.message.includes('not found')) {
+        await supabase.storage.createBucket(folder, {
+          public: true,
+        });
+      }
+      
       const fileExt = file.name.split('.').pop();
       const fileName = `${Math.random().toString(36).substring(2, 15)}.${fileExt}`;
       const filePath = `${folder}/${fileName}`;
       
       const { data, error } = await supabase.storage
-        .from('files')
+        .from(folder)
         .upload(filePath, file, {
           cacheControl: '3600',
           upsert: false,
@@ -86,7 +96,7 @@ export const FileUpload: React.FC<FileUploadProps> = ({
       clearInterval(intervalId);
       setProgress(100);
       
-      const { data: urlData } = supabase.storage.from('files').getPublicUrl(filePath);
+      const { data: urlData } = supabase.storage.from(folder).getPublicUrl(filePath);
       
       // Store file metadata in the database
       const { data: fileRecord, error: fileError } = await supabase
@@ -125,23 +135,39 @@ export const FileUpload: React.FC<FileUploadProps> = ({
       {!file ? (
         <div className="border-2 border-dashed border-muted-foreground/20 rounded-lg p-4">
           <div className="flex flex-col items-center justify-center gap-2">
-            <Upload className="h-8 w-8 text-muted-foreground" />
-            <Label htmlFor="file-upload" className="cursor-pointer">
-              <span className="text-sm text-center block">
-                Drag & drop a file here, or click to select a file
-              </span>
-              <span className="text-xs text-muted-foreground text-center block mt-1">
-                Allowed types: {allowedTypes.map(type => type.replace('image/', '.')).join(', ')}
-              </span>
-              <input
-                id="file-upload"
-                type="file"
-                className="hidden"
-                onChange={handleFileChange}
-                disabled={uploading}
-                accept={allowedTypes.join(',')}
-              />
-            </Label>
+            {children ? (
+              <Label htmlFor="file-upload" className="cursor-pointer w-full">
+                {children}
+                <input
+                  id="file-upload"
+                  type="file"
+                  className="hidden"
+                  onChange={handleFileChange}
+                  disabled={uploading}
+                  accept={allowedTypes.join(',')}
+                />
+              </Label>
+            ) : (
+              <>
+                <Upload className="h-8 w-8 text-muted-foreground" />
+                <Label htmlFor="file-upload" className="cursor-pointer">
+                  <span className="text-sm text-center block">
+                    Drag & drop a file here, or click to select a file
+                  </span>
+                  <span className="text-xs text-muted-foreground text-center block mt-1">
+                    Allowed types: {allowedTypes.map(type => type.replace('image/', '.')).join(', ')}
+                  </span>
+                  <input
+                    id="file-upload"
+                    type="file"
+                    className="hidden"
+                    onChange={handleFileChange}
+                    disabled={uploading}
+                    accept={allowedTypes.join(',')}
+                  />
+                </Label>
+              </>
+            )}
           </div>
         </div>
       ) : (
