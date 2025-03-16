@@ -1,3 +1,4 @@
+
 import React, { useState } from 'react';
 import { Avatar, AvatarFallback, AvatarImage } from '@/components/ui/avatar';
 import { Button } from '@/components/ui/button';
@@ -130,10 +131,10 @@ const CommunityPost: React.FC<PostProps> = ({ post, onUpdate, onDelete }) => {
     }
   };
   
-  const handleCommentFileUpload = (files: File[]) => {
-    const newAttachments = files.map(file => URL.createObjectURL(file));
-    setCommentAttachments([...commentAttachments, ...newAttachments]);
-    toast.success(`${files.length} file(s) attached to your comment`);
+  const handleFileSuccess = (filePath: string, fileData: any) => {
+    const fileUrl = fileData.url;
+    setCommentAttachments(prev => [...prev, fileUrl]);
+    toast.success(`File attached to your comment`);
   };
   
   const handleShare = () => {
@@ -305,15 +306,15 @@ const CommunityPost: React.FC<PostProps> = ({ post, onUpdate, onDelete }) => {
               <div className="flex justify-between items-center">
                 <div className="flex items-center space-x-2">
                   <FileUpload
-                    onFilesSelected={handleCommentFileUpload}
-                    accept="image/*"
-                    multiple
-                    buttonProps={{
-                      variant: "ghost",
-                      className: "h-8 w-8 p-0"
-                    }}
+                    onSuccess={handleFileSuccess}
+                    allowedTypes={["image/jpeg", "image/png", "image/gif"]}
+                    folder="comments"
+                    buttonText=""
+                    buttonSize="sm"
                   >
-                    <Paperclip className="h-4 w-4" />
+                    <Button variant="ghost" size="icon" className="h-8 w-8 p-0">
+                      <Paperclip className="h-4 w-4" />
+                    </Button>
                   </FileUpload>
                 </div>
                 

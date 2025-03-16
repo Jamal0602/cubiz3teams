@@ -3,25 +3,30 @@ import React from 'react';
 import { FileUpload } from './FileUpload';
 
 interface FileUploadWrapperProps {
-  onFilesSelected: (files: File[]) => void;
+  onSuccess: (filePath: string, fileData: any) => void;
   accept: string;
   multiple: boolean;
   buttonProps: Record<string, any>;
+  children?: React.ReactNode;
 }
 
 const FileUploadWrapper: React.FC<FileUploadWrapperProps> = ({
-  onFilesSelected,
+  onSuccess,
   accept,
   multiple,
   buttonProps,
+  children,
 }) => {
   return (
     <FileUpload
-      onFilesSelected={onFilesSelected}
-      accept={accept}
-      multiple={multiple}
-      buttonProps={buttonProps}
-    />
+      onSuccess={onSuccess}
+      allowedTypes={accept.split(',').map(type => type.trim())}
+      folder="uploads"
+      buttonText={buttonProps.text || "Upload"}
+      buttonSize={buttonProps.size || "default"}
+    >
+      {children}
+    </FileUpload>
   );
 };
 

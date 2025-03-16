@@ -328,8 +328,10 @@ export type Database = {
           department: string | null
           full_name: string
           id: string
+          is_verified: boolean | null
           joined_at: string
           location: string | null
+          privacy_settings: Json | null
           rank_points: number
           role: Database["public"]["Enums"]["user_role"]
           skills: string[] | null
@@ -343,8 +345,10 @@ export type Database = {
           department?: string | null
           full_name: string
           id: string
+          is_verified?: boolean | null
           joined_at?: string
           location?: string | null
+          privacy_settings?: Json | null
           rank_points: number
           role?: Database["public"]["Enums"]["user_role"]
           skills?: string[] | null
@@ -358,8 +362,10 @@ export type Database = {
           department?: string | null
           full_name?: string
           id?: string
+          is_verified?: boolean | null
           joined_at?: string
           location?: string | null
+          privacy_settings?: Json | null
           rank_points?: number
           role?: Database["public"]["Enums"]["user_role"]
           skills?: string[] | null
@@ -415,6 +421,36 @@ export type Database = {
             referencedColumns: ["id"]
           },
         ]
+      }
+      subscriptions: {
+        Row: {
+          created_at: string | null
+          expires_at: string | null
+          id: string
+          payment_id: string | null
+          plan: string
+          status: string
+          user_id: string
+        }
+        Insert: {
+          created_at?: string | null
+          expires_at?: string | null
+          id?: string
+          payment_id?: string | null
+          plan: string
+          status?: string
+          user_id: string
+        }
+        Update: {
+          created_at?: string | null
+          expires_at?: string | null
+          id?: string
+          payment_id?: string | null
+          plan?: string
+          status?: string
+          user_id?: string
+        }
+        Relationships: []
       }
       tasks: {
         Row: {
@@ -606,6 +642,36 @@ export type Database = {
             referencedColumns: ["id"]
           },
         ]
+      }
+      user_messages: {
+        Row: {
+          content: string
+          created_at: string | null
+          id: string
+          is_request: boolean | null
+          read: boolean | null
+          recipient_id: string
+          sender_id: string
+        }
+        Insert: {
+          content: string
+          created_at?: string | null
+          id?: string
+          is_request?: boolean | null
+          read?: boolean | null
+          recipient_id: string
+          sender_id: string
+        }
+        Update: {
+          content?: string
+          created_at?: string | null
+          id?: string
+          is_request?: boolean | null
+          read?: boolean | null
+          recipient_id?: string
+          sender_id?: string
+        }
+        Relationships: []
       }
       user_notifications: {
         Row: {

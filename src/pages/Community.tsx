@@ -8,15 +8,15 @@ import { Textarea } from '@/components/ui/textarea';
 import { toast } from 'sonner';
 import { supabase } from '@/integrations/supabase/client';
 import { useIsMobile } from '@/hooks/use-mobile';
-import FileUploadWrapper from '@/components/FileUploadWrapper';
+import { FileUpload } from '@/components/FileUpload';
 import { PlusCircle, Paperclip } from 'lucide-react';
 
 const Community = () => {
-  const { user } = useAuth();
+  const { user, profile } = useAuth();
   const [posts, setPosts] = useState<any[]>([]);
   const [loading, setLoading] = useState(true);
   const [newPostContent, setNewPostContent] = useState('');
-  const [attachments, setAttachments] = useState<File[]>([]);
+  const [attachments, setAttachments] = useState<string[]>([]);
   const [isSubmitting, setIsSubmitting] = useState(false);
   const isMobile = useIsMobile();
 
@@ -43,43 +43,27 @@ const Community = () => {
   };
 
   const handlePostSubmit = async () => {
-    if (!newPostContent.trim()) {
+    if (!newPostContent.trim() && attachments.length === 0) {
       toast.error('Post content cannot be empty');
+      return;
+    }
+
+    if (!user) {
+      toast.error('You must be logged in to post');
       return;
     }
 
     try {
       setIsSubmitting(true);
       
-      // Upload attachments if any
-      const uploadedAttachments: string[] = [];
-      
-      if (attachments.length > 0) {
-        for (const file of attachments) {
-          const fileName = `${Date.now()}_${file.name}`;
-          const { error: uploadError } = await supabase.storage
-            .from('community_attachments')
-            .upload(fileName, file);
-            
-          if (uploadError) throw uploadError;
-          
-          const publicUrl = supabase.storage
-            .from('community_attachments')
-            .getPublicUrl(fileName).data.publicUrl;
-            
-          uploadedAttachments.push(publicUrl);
-        }
-      }
-      
       // Create post
       const { data, error } = await supabase
         .from('community_posts')
         .insert({
           content: newPostContent,
-          created_by: user?.id || 'anonymous',
-          attachments: uploadedAttachments,
-          likes: 0,
-          liked_by: []
+          created_by: user.id,
+          attachments: attachments,
+          likes: 0
         })
         .select();
 
@@ -89,8 +73,18 @@ const Community = () => {
       setNewPostContent('');
       setAttachments([]);
       
+      // Add user info to post for display
+      const postWithUser = {
+        ...data[0],
+        user: {
+          name: profile?.full_name || 'Anonymous User',
+          avatar_url: profile?.avatar_url,
+          role: profile?.role
+        }
+      };
+      
       // Update posts list
-      setPosts([data[0], ...posts]);
+      setPosts([postWithUser, ...posts]);
       
       toast.success('Post published successfully');
     } catch (error) {
@@ -101,8 +95,10 @@ const Community = () => {
     }
   };
 
-  const handleFileChange = (files: File[]) => {
-    setAttachments(prev => [...prev, ...files]);
+  const handleFileSuccess = (filePath: string, fileData: any) => {
+    const fileUrl = fileData.url;
+    setAttachments(prev => [...prev, fileUrl]);
+    toast.success('File attached to your post');
   };
 
   const handleRemoveAttachment = (index: number) => {
@@ -137,9 +133,9 @@ const Community = () => {
             />
             
             <div className="flex flex-wrap gap-2">
-              {attachments.map((file, index) => (
+              {attachments.map((url, index) => (
                 <div key={index} className="flex items-center gap-1 p-1 sm:p-2 bg-muted rounded text-xs sm:text-sm">
-                  <span className="truncate max-w-[150px]">{file.name}</span>
+                  <img src={url} alt="attachment" className="h-8 w-8 object-cover rounded" />
                   <Button 
                     variant="ghost" 
                     size="icon" 
@@ -154,23 +150,26 @@ const Community = () => {
             </div>
             
             <div className="flex justify-between items-center">
-              <FileUploadWrapper
-                onFilesSelected={handleFileChange}
-                accept="image/*,application/pdf"
-                multiple={true}
-                buttonProps={{
-                  variant: "outline",
-                  size: isMobile ? "sm" : "default",
-                  className: "text-xs sm:text-sm"
-                }}
+              <FileUpload
+                onSuccess={handleFileSuccess}
+                allowedTypes={["image/jpeg", "image/png", "image/gif"]}
+                folder="community"
+                buttonText={isMobile ? "Attach" : "Attach Files"}
+                buttonSize={isMobile ? "sm" : "default"}
               >
-                <Paperclip className="h-3 w-3 sm:h-4 sm:w-4 mr-1 sm:mr-2" />
-                {isMobile ? "Attach" : "Attach Files"}
-              </FileUploadWrapper>
+                <Button 
+                  variant="outline"
+                  size={isMobile ? "sm" : "default"}
+                  className="text-xs sm:text-sm"
+                >
+                  <Paperclip className="h-3 w-3 sm:h-4 sm:w-4 mr-1 sm:mr-2" />
+                  {isMobile ? "Attach" : "Attach Files"}
+                </Button>
+              </FileUpload>
               
               <Button 
                 onClick={handlePostSubmit} 
-                disabled={isSubmitting || !newPostContent.trim()}
+                disabled={isSubmitting || (!newPostContent.trim() && attachments.length === 0)}
                 size={isMobile ? "sm" : "default"}
                 className="text-xs sm:text-sm"
               >

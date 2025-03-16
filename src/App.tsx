@@ -9,6 +9,7 @@ import { ThemeProvider } from "@/contexts/ThemeContext";
 import { NotificationProvider } from "@/contexts/NotificationContext";
 import AppLayout from "@/components/layout/AppLayout";
 import PublicLayout from "@/components/layout/PublicLayout";
+import ProtectedRoute from "@/components/ProtectedRoute";
 
 // Pages
 import Index from "@/pages/Index";
@@ -27,6 +28,8 @@ import Settings from "@/pages/Settings";
 import Community from "@/pages/Community";
 import Files from "@/pages/Files";
 import AIHelp from "@/pages/AIHelp";
+import VerificationPending from "@/pages/VerificationPending";
+import Login from "@/pages/Login";
 
 const queryClient = new QueryClient();
 
@@ -43,25 +46,73 @@ const App = () => (
                 {/* Public routes */}
                 <Route element={<PublicLayout />}>
                   <Route path="/" element={<Index />} />
-                  <Route path="/login" element={<Auth />} />
+                  <Route path="/login" element={<Login />} />
+                  <Route path="/auth" element={<Auth />} />
                   <Route path="/auth/callback" element={<AuthCallback />} />
-                  {/* Redirect immediately to dashboard from verification-pending */}
-                  <Route path="/verification-pending" element={<Navigate to="/dashboard" replace />} />
+                  <Route path="/verification-pending" element={<VerificationPending />} />
                 </Route>
                 
-                {/* App routes - all accessible to everyone */}
-                <Route path="/dashboard" element={<AppLayout><Dashboard /></AppLayout>} />
-                <Route path="/profile" element={<AppLayout><Profile /></AppLayout>} />
-                <Route path="/teams" element={<AppLayout><Teams /></AppLayout>} />
-                <Route path="/projects" element={<AppLayout><Projects /></AppLayout>} />
-                <Route path="/events" element={<AppLayout><Events /></AppLayout>} />
-                <Route path="/analytics" element={<AppLayout><Analytics /></AppLayout>} />
-                <Route path="/notifications" element={<AppLayout><Notifications /></AppLayout>} />
-                <Route path="/settings" element={<AppLayout><Settings /></AppLayout>} />
-                <Route path="/community" element={<AppLayout><Community /></AppLayout>} />
-                <Route path="/files" element={<AppLayout><Files /></AppLayout>} />
-                <Route path="/ai-help" element={<AppLayout><AIHelp /></AppLayout>} />
-                <Route path="/admin" element={<AppLayout><AdminDashboard /></AppLayout>} />
+                {/* App routes - protected by ProtectedRoute */}
+                <Route path="/dashboard" element={
+                  <ProtectedRoute>
+                    <AppLayout><Dashboard /></AppLayout>
+                  </ProtectedRoute>
+                } />
+                <Route path="/profile" element={
+                  <ProtectedRoute requireVerification={false}>
+                    <AppLayout><Profile /></AppLayout>
+                  </ProtectedRoute>
+                } />
+                <Route path="/teams" element={
+                  <ProtectedRoute>
+                    <AppLayout><Teams /></AppLayout>
+                  </ProtectedRoute>
+                } />
+                <Route path="/projects" element={
+                  <ProtectedRoute>
+                    <AppLayout><Projects /></AppLayout>
+                  </ProtectedRoute>
+                } />
+                <Route path="/events" element={
+                  <ProtectedRoute>
+                    <AppLayout><Events /></AppLayout>
+                  </ProtectedRoute>
+                } />
+                <Route path="/analytics" element={
+                  <ProtectedRoute>
+                    <AppLayout><Analytics /></AppLayout>
+                  </ProtectedRoute>
+                } />
+                <Route path="/notifications" element={
+                  <ProtectedRoute>
+                    <AppLayout><Notifications /></AppLayout>
+                  </ProtectedRoute>
+                } />
+                <Route path="/settings" element={
+                  <ProtectedRoute requireVerification={false}>
+                    <AppLayout><Settings /></AppLayout>
+                  </ProtectedRoute>
+                } />
+                <Route path="/community" element={
+                  <ProtectedRoute requireVerification={false}>
+                    <AppLayout><Community /></AppLayout>
+                  </ProtectedRoute>
+                } />
+                <Route path="/files" element={
+                  <ProtectedRoute>
+                    <AppLayout><Files /></AppLayout>
+                  </ProtectedRoute>
+                } />
+                <Route path="/ai-help" element={
+                  <ProtectedRoute>
+                    <AppLayout><AIHelp /></AppLayout>
+                  </ProtectedRoute>
+                } />
+                <Route path="/admin" element={
+                  <ProtectedRoute requiredRole="admin">
+                    <AppLayout><AdminDashboard /></AppLayout>
+                  </ProtectedRoute>
+                } />
                 
                 {/* Catch-all route */}
                 <Route path="*" element={<NotFound />} />
